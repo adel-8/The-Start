@@ -1,0 +1,880 @@
+/* ============================================
+   GLOBAL VARIABLES & RESET
+   ============================================ */
+:root {
+    --color-primary: #645F7D;
+    --color-primary-hover: #4E3B64;
+    --color-background: #CFCCC2;
+    --color-surface: #FFFDF8;
+    --color-text: #2D2A35;
+    --color-muted: #6F6A7A;
+    --color-accent: #E0B854;
+    --color-border: #E3DFD4;
+    --shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.03), 0 2px 6px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    line-height: 1.5;
+}
+
+/* ============================================
+   MODERN NAVBAR (public)
+   ============================================ */
+.navbar {
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+.navbar-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0.8rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+/* Logo */
+.logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    text-decoration: none;
+    letter-spacing: -0.3px;
+}
+
+/* Desktop nav links */
+.nav-links {
+    display: flex;
+    gap: 2rem;
+    flex: 1;
+    justify-content: center;
+}
+.nav-links a {
+    color: var(--color-text);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+    position: relative;
+}
+.nav-links a:hover {
+    color: var(--color-primary);
+}
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--color-primary);
+    transition: width 0.2s;
+}
+.nav-links a:hover::after {
+    width: 100%;
+}
+
+/* Right side actions */
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+}
+
+/* Cart icon */
+.cart-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    color: var(--color-text);
+    text-decoration: none;
+    font-size: 1.2rem;
+}
+.cart-link:hover {
+    color: var(--color-primary);
+}
+.cart-count {
+    position: absolute;
+    top: -8px;
+    right: -12px;
+    background: var(--color-accent);
+    color: #2D2A35;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* User avatar / icon */
+.user-dropdown-wrapper {
+    position: relative;
+}
+.user-avatar {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    color: var(--color-text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+}
+.user-avatar:hover {
+    color: var(--color-primary);
+}
+
+/* User dropdown */
+.user-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 200px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+    display: none;
+    z-index: 1000;
+}
+.user-dropdown.show {
+    display: block;
+}
+.dropdown-header {
+    padding: 0.8rem 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+.dropdown-divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: 0;
+}
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 1rem;
+    color: var(--color-text);
+    text-decoration: none;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+.dropdown-item:hover {
+    background: rgba(0,0,0,0.05);
+}
+.dropdown-item i {
+    width: 1.2rem;
+    font-size: 0.9rem;
+}
+
+/* Buttons for non‑logged‑in users */
+.nav-actions .btn {
+    background: var(--color-primary);
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+.nav-actions .btn:hover {
+    background: var(--color-primary-hover);
+}
+
+/* Mobile menu toggle */
+.mobile-menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: var(--color-primary);
+}
+
+/* Mobile menu */
+.mobile-menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 80%;
+    max-width: 300px;
+    height: 100vh;
+    background: var(--color-primary);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+}
+.mobile-menu.open {
+    transform: translateX(0);
+}
+.mobile-menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+.mobile-logo {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: white;
+}
+.close-menu {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: white;
+}
+.mobile-links {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.mobile-links a,
+.mobile-link {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    color: white;
+    text-decoration: none;
+    padding: 0.6rem 0;
+    transition: opacity 0.2s;
+}
+.mobile-links a:hover,
+.mobile-link:hover {
+    opacity: 0.8;
+}
+.mobile-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.2);
+    margin: 0.5rem 0;
+}
+.mobile-user-name {
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.5rem;
+    padding: 0.6rem 0;
+}
+.logout-btn-mobile {
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.6rem 0;
+}
+.logout-btn-mobile:hover {
+    opacity: 0.8;
+}
+
+/* Responsive: hide desktop nav links on small screens */
+@media (max-width: 800px) {
+    .nav-links {
+        display: none;
+    }
+    .mobile-menu-toggle {
+        display: block;
+    }
+}
+
+/* ============================================
+   FOOTER (public)
+   ============================================ */
+.footer {
+    width: 100%;
+    background: var(--color-surface);
+    color: var(--color-text);
+    padding: 3rem 0 1.5rem;
+    margin-top: 4rem;
+    border-top: 1px solid var(--color-border);
+}
+.footer-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+.footer-content {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+.footer-section h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    color: var(--color-primary);
+}
+.footer-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.footer-section li {
+    margin-bottom: 0.5rem;
+}
+.footer-section a {
+    color: var(--color-muted);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+.footer-section a:hover {
+    color: var(--color-primary);
+}
+.footer-section p {
+    color: var(--color-muted);
+    line-height: 1.6;
+    margin: 0;
+}
+.footer-bottom {
+    text-align: center;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border);
+    font-size: 0.875rem;
+    color: var(--color-muted);
+}
+
+/* Responsive footer */
+@media (max-width: 992px) {
+    .footer-content {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
+    }
+}
+@media (max-width: 576px) {
+    .footer {
+        padding: 1.5rem 0 0.8rem;
+        margin-top: 2rem;
+    }
+    .footer-container {
+        padding: 0 1rem;
+    }
+    .footer-section {
+        margin-bottom: 1rem;
+    }
+    .footer-section h3 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    .footer-section p,
+    .footer-section a {
+        font-size: 0.8rem;
+    }
+    .footer-bottom {
+        padding-top: 0.8rem;
+        font-size: 0.7rem;
+    }
+    .footer-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    .footer-section ul {
+        text-align: center;
+    }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+.add-cart-btn.disabled,
+.add-cart-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: var(--color-muted);
+    border-color: var(--color-muted);
+    color: white;
+}
+
+.user-greeting-link {
+    text-decoration: none;
+    color: var(--color-text);
+    font-weight: 500;
+    transition: color 0.2s;
+}
+.user-greeting-link:hover {
+    color: var(--color-primary);
+}
+
+.user-greeting-mobile-link {
+    display: block;
+    text-decoration: none;
+    color: white;
+    padding: 1rem;
+    font-weight: 500;
+    transition: background-color 0.3s;
+}
+.user-greeting-mobile-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--color-accent);
+}
+
+.orders-link {
+    text-decoration: none;
+    color: var(--color-text);
+    font-weight: 500;
+    margin-right: 0.5rem;
+    transition: color 0.2s;
+}
+.orders-link:hover {
+    color: var(--color-primary);
+}
+
+.orders-link-mobile {
+    display: block;
+    text-decoration: none;
+    color: white;
+    padding: 1rem;
+    font-weight: 500;
+    transition: background-color 0.3s;
+}
+.orders-link-mobile:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--color-accent);
+}
+
+
+@media (max-width: 800px) {
+    .nav-actions .btn {
+        display: none;
+    }
+    /* Also hide user greeting and logout button if logged in */
+    .nav-actions .user-greeting-link,
+    .nav-actions .logout-btn {
+        display: none;
+    }
+    /* Keep the cart icon */
+    .cart-link {
+        display: inline-flex;
+    }
+}
+
+
+
+
+.language-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 1rem;
+}
+.language-switcher a {
+    text-decoration: none;
+    color: var(--color-text);
+    font-weight: 500;
+    transition: color 0.2s;
+}
+.language-switcher a:hover,
+.language-switcher a.active {
+    color: var(--color-primary);
+}
+.language-switcher span {
+    color: var(--color-muted);
+}
+
+body[dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+}
+body[dir="rtl"] .nav-links a::after {
+    left: auto;
+    right: 0;
+}
+body[dir="rtl"] .section-title {
+    border-left: none;
+    border-right: 4px solid var(--color-primary);
+    padding-left: 0;
+    padding-right: 1rem;
+}
+body[dir="rtl"] .dropdown-menu {
+  left: auto !important;
+  right: 0;
+  text-align: right;
+}
+[dir="rtl"] .navbar-nav,
+[dir="rtl"] .navbar-nav .nav-item,
+[dir="rtl"] .admin-sidebar {
+  text-align: right;
+}
+[dir="rtl"] .navbar-toggler {
+  margin-right: auto;
+  margin-left: 0;
+}
+
+/* Keep same flex layout (logo left, actions right) */
+body[dir="rtl"] .navbar-container {
+    /* no flex-direction change */
+    justify-content: space-between;
+}
+
+/* Fix language switcher margin (original margin-left -> margin-right in RTL) */
+body[dir="rtl"] .language-switcher {
+    margin-left: 0;
+    margin-right: 1rem;
+}
+
+/* Cart count badge: original right:-12px -> left:auto, right:auto? Actually keep on right side but adjust */
+body[dir="rtl"] .cart-link .cart-count {
+    right: -12px;  /* keep same because icon is still on right side */
+    left: auto;
+}
+
+/* User dropdown: because the avatar is on the far right, the dropdown should open to the left (not right) */
+body[dir="rtl"] .user-dropdown {
+    right: auto;
+    left: 0;  /* so it expands leftwards from the avatar */
+}
+
+/* Dropdown text alignment */
+body[dir="rtl"] .dropdown-item {
+    text-align: right;
+    justify-content: flex-end;  /* if using flex gap */
+}
+
+/* Mobile menu: keep sliding from right (right->left) but inner text RTL */
+body[dir="rtl"] .mobile-menu {
+    right: 0;
+    left: auto;
+    transform: translateX(100%);
+}
+body[dir="rtl"] .mobile-menu.open {
+    transform: translateX(0);
+}
+/* Mobile menu header: close button on left side in RTL? Better keep close on right */
+body[dir="rtl"] .mobile-menu-header {
+    flex-direction: row;  /* keep same direction */
+}
+body[dir="rtl"] .close-menu {
+    margin-left: auto;
+    margin-right: 0;
+}
+/* Mobile links: align text right */
+body[dir="rtl"] .mobile-links a,
+body[dir="rtl"] .mobile-link,
+body[dir="rtl"] .logout-btn-mobile {
+    justify-content: flex-end;
+    text-align: right;
+}
+body[dir="rtl"] .mobile-user-name {
+    text-align: right;
+}
+
+/* Nav links underline effect (original left:0 becomes right:0) */
+body[dir="rtl"] .nav-links a::after {
+    left: auto;
+    right: 0;
+}
+
+/* If any buttons or icons inside nav-actions need icon ordering */
+body[dir="rtl"] .nav-actions .btn i,
+body[dir="rtl"] .cart-link i {
+    margin-left: 0.5rem;
+    margin-right: 0;
+}
+
+/* Fix close button position in mobile sidebar for RTL */
+body[dir="rtl"] .mobile-menu-header {
+    flex-direction: row-reverse; /* pushes X to the left, logo to the right */
+}
+body[dir="rtl"] .close-menu {
+    margin-left: auto;
+    margin-right: 0;
+}
+
+body[dir="rtl"] .user-dropdown {
+    right: auto;
+    left: 0;
+}
+body[dir="rtl"] .dropdown-item {
+    text-align: right;
+    justify-content: flex-end;
+}
+body[dir="rtl"] .mobile-menu-header {
+    flex-direction: row-reverse;
+}
+body[dir="rtl"] .close-menu {
+    margin-left: auto;
+    margin-right: 0;
+}
+
+.product-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.product-actions {
+    margin-top: auto; /* pushes buttons to the bottom */
+}
+
+/* Product info */
+.product-info {
+    flex: 1;
+    padding: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+
+.product-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.3;
+    color: var(--color-text);
+}
+
+.product-price {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.product-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.add-cart-btn,
+.details-btn {
+    flex: 1;
+    padding: 0.5rem;
+    border-radius: 2rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+    border: none;
+}
+
+.add-cart-btn {
+    background: var(--color-primary);
+    color: white;
+}
+.add-cart-btn:hover {
+    background: var(--color-primary-hover);
+}
+.details-btn {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+}
+.details-btn:hover {
+    background: var(--color-background);
+}
+.add-cart-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+    .product-info {
+        padding: 0.6rem;
+    }
+    .product-name {
+        font-size: 0.85rem;
+    }
+    .product-price {
+        font-size: 1rem;
+    }
+}
+
+
+/* ========== PRODUCT CARD (unified) ========== */
+.product-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--color-surface);
+    border-radius: 1rem;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-border);
+    position: relative;
+}
+.product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Image wrapper for absolute badges */
+.product-card__image-wrapper {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: #f5f3ec;
+}
+.product-card__image-wrapper .product-img {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.product-card__image-wrapper .product-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+}
+.product-card:hover .product-img img {
+    transform: scale(1.03);
+}
+
+/* Badges overlay – placed on image */
+.product-card__badges {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 2;
+}
+.product-card__badges .badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 20px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+/* Keep your original badge colors */
+.product-card__badges .badge-new { background: var(--color-accent); color: #2D2A35; }
+.product-card__badges .badge-bestseller { background: var(--color-primary); color: white; }
+.product-card__badges .badge-danger { background: #c72a2a; color: white; }
+
+/* Product info */
+.product-info {
+    flex: 1;
+    padding: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Rating */
+.product-card__rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    background: rgba(0, 0, 0, 0.03);
+    padding: 0.2rem 0.6rem;
+    border-radius: 2rem;
+    width: fit-content;
+    color: #f5b342; /* gold stars */
+}
+.product-card__rating span {
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+.product-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.3;
+    color: var(--color-text);
+}
+.product-price {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+.product-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+.add-cart-btn,
+.details-btn {
+    flex: 1;
+    padding: 0.5rem;
+    border-radius: 2rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+    border: none;
+}
+.add-cart-btn {
+    background: var(--color-primary);
+    color: white;
+}
+.add-cart-btn:hover {
+    background: var(--color-primary-hover);
+}
+.details-btn {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+}
+.details-btn:hover {
+    background: var(--color-background);
+}
+.add-cart-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .product-info {
+        padding: 0.6rem;
+    }
+    .product-name {
+        font-size: 0.85rem;
+    }
+    .product-price {
+        font-size: 1rem;
+    }
+}
+
+.logo-img {
+    height: 40px;
+    width: auto;
+}
+.mobile-logo-img {
+    height: 30px;
+    width: auto;
+}
