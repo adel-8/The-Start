@@ -16,7 +16,7 @@ use App\Traits\CartHelper;
 use App\Mail\OrderConfirmation;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
-use App\Models\Setting; // <-- added to fetch settings
+use App\Models\Setting;
 
 class CheckoutController extends Controller
 {
@@ -40,7 +40,7 @@ class CheckoutController extends Controller
         $addresses = $user ? $user->addresses : collect();
         $defaultAddress = $addresses->where('is_default', true)->first();
 
-        // ---------- NEW: fetch regions and shipping costs ----------
+        // Fetch shipping region costs
         $settings = Setting::pluck('setting_value', 'setting_key');
         $regionCosts = [];
         if (isset($settings['shipping_region_costs'])) {
@@ -57,11 +57,22 @@ class CheckoutController extends Controller
             'Relizane', 'Timimoun', 'Bordj Badji Mokhtar', 'Ouled Djellal', 'Béni Abbès', 'In Salah', 'In Guezzam', 'Touggourt',
             'Djanet', 'El M\'ghair', 'El Menia'
         ];
-        // ---------------------------------------------------------
+
+        // Get enabled payment methods from settings
+        $enabledPayments = [];
+        if (($settings['payment_cod_enabled'] ?? '1') == '1') {
+            $enabledPayments[] = 'cash_on_delivery';
+        }
+        if (($settings['payment_baridimob_enabled'] ?? '1') == '1') {
+            $enabledPayments[] = 'baridimob';
+        }
+        if (($settings['payment_stripe_enabled'] ?? '0') == '1') {
+            $enabledPayments[] = 'stripe';
+        }
 
         return view('checkout', compact(
             'cart', 'addresses', 'defaultAddress',
-            'regions', 'regionCosts'           // <-- pass to view
+            'regions', 'regionCosts', 'enabledPayments'
         ));
     }
 
@@ -75,6 +86,24 @@ class CheckoutController extends Controller
             $request->request->remove('postal_code');
         }
 
+        // Get enabled payment methods from settings for validation
+        $settings = Setting::pluck('setting_value', 'setting_key')->toArray();
+        $enabledPayments = [];
+        if (($settings['payment_cod_enabled'] ?? '1') == '1') {
+            $enabledPayments[] = 'cash_on_delivery';
+        }
+        if (($settings['payment_baridimob_enabled'] ?? '1') == '1') {
+            $enabledPayments[] = 'baridimob';
+        }
+        if (($settings['payment_stripe_enabled'] ?? '0') == '1') {
+            $enabledPayments[] = 'stripe';
+        }
+
+        // If no payment methods are enabled, fallback to COD (should not happen, but safe)
+        if (empty($enabledPayments)) {
+            $enabledPayments = ['cash_on_delivery'];
+        }
+
         $request->validate([
             'address_id'     => 'nullable|exists:addresses,id',
             'full_name'      => 'required|string|max:255',
@@ -84,7 +113,7 @@ class CheckoutController extends Controller
             'city'           => 'required_if:address_id,null|string|max:100',
             'region'         => 'nullable|string|max:100',
             'postal_code'    => 'nullable|string|max:20',
-            'payment_method' => 'required|in:cash_on_delivery,baridimob,stripe',
+            'payment_method' => 'required|in:' . implode(',', $enabledPayments),
             'coupon_code'    => 'nullable|string|max:50',
             'notes'          => 'nullable|string|max:500',
         ]);
@@ -94,8 +123,7 @@ class CheckoutController extends Controller
             return $this->jsonResponse(false, 'Your cart is empty.', 400, $request);
         }
 
-        // Calculate shipping cost for the selected region
-        $settings = Setting::pluck('setting_value', 'setting_key')->toArray();
+        // Calculate shipping cost for the selected region (NO default shipping cost, NO free shipping threshold)
         $shippingCost = 0;
         if ($request->filled('region') && isset($settings['shipping_region_costs'])) {
             $regionCosts = json_decode($settings['shipping_region_costs'], true);
@@ -103,23 +131,8 @@ class CheckoutController extends Controller
                 $shippingCost = (float) $regionCosts[$request->region];
             }
         }
-        if ($shippingCost === 0 && isset($settings['shipping_cost'])) {
-            $shippingCost = (float) $settings['shipping_cost'];
-        }
 
-        // Apply free shipping threshold if configured
-        if (isset($settings['free_shipping_threshold']) && $settings['free_shipping_threshold'] !== '' && is_numeric($settings['free_shipping_threshold'])) {
-            $freeThreshold = (float) $settings['free_shipping_threshold'];
-            $subtotal = 0;
-            foreach ($cart as $item) {
-                $subtotal += $item['price'] * $item['quantity'];
-            }
-            if ($subtotal >= $freeThreshold) {
-                $shippingCost = 0;
-            }
-        }
-
-        // ---------- BARIDIMOB: store data and redirect to instructions (no order yet) ----------
+        // BaridiMob: store data and redirect to instructions (no order yet)
         if ($request->payment_method === 'baridimob') {
             Log::info('BaridiMob checkout initiated', [
                 'user_id' => Auth::id(),
@@ -134,7 +147,7 @@ class CheckoutController extends Controller
             return redirect()->route('payment.baridimob');
         }
 
-        // ---------- STRIPE: redirect to Stripe checkout (order created after payment) ----------
+        // Stripe: redirect to Stripe checkout (order created after payment)
         if ($request->payment_method === 'stripe') {
             Log::info('Stripe checkout initiated', [
                 'user_id' => Auth::id(),
@@ -149,7 +162,7 @@ class CheckoutController extends Controller
             return redirect()->route('stripe.checkout');
         }
 
-        // ---------- COD: create order immediately ----------
+        // COD: create order immediately
         DB::beginTransaction();
 
         try {

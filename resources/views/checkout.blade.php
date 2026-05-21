@@ -109,21 +109,31 @@
 
                     <h2>{{ __('messages.payment_method') }}</h2>
                     <div class="payment-methods">
-                        <label class="payment-option">
-                            <input type="radio" name="payment_method" value="cash_on_delivery" checked>
-                            <strong><i class="fas fa-money-bill-wave"></i> {{ __('messages.cash_on_delivery') }}</strong>
-                            <p>{{ __('messages.cash_on_delivery_desc') }}</p>
-                        </label>
-                        <label class="payment-option">
-                            <input type="radio" name="payment_method" value="baridimob">
-                            <strong><i class="fas fa-money-bill"></i> {{ __('messages.baridimob') }}</strong>
-                            <p>{{ __('messages.baridimob_desc') }}</p>
-                        </label>
-                        <label class="payment-option">
-                            <input type="radio" name="payment_method" value="stripe">
-                            <strong><i class="fab fa-stripe"></i> {{ __('messages.stripe') }}</strong>
-                            <p>{{ __('messages.stripe_desc') }}</p>
-                        </label>
+                        @if(empty($enabledPayments))
+                            <div class="alert alert-warning">{{ __('messages.no_payment_methods_available') }}</div>
+                        @else
+                            @foreach($enabledPayments as $method)
+                                @if($method === 'cash_on_delivery')
+                                    <label class="payment-option">
+                                        <input type="radio" name="payment_method" value="cash_on_delivery" {{ $loop->first ? 'checked' : '' }}>
+                                        <strong><i class="fas fa-money-bill-wave"></i> {{ __('messages.cash_on_delivery') }}</strong>
+                                        <p>{{ __('messages.cash_on_delivery_desc') }}</p>
+                                    </label>
+                                @elseif($method === 'baridimob')
+                                    <label class="payment-option">
+                                        <input type="radio" name="payment_method" value="baridimob" {{ $loop->first ? 'checked' : '' }}>
+                                        <strong><i class="fas fa-money-bill"></i> {{ __('messages.baridimob') }}</strong>
+                                        <p>{{ __('messages.baridimob_desc') }}</p>
+                                    </label>
+                                @elseif($method === 'stripe')
+                                    <label class="payment-option">
+                                        <input type="radio" name="payment_method" value="stripe" {{ $loop->first ? 'checked' : '' }}>
+                                        <strong><i class="fab fa-stripe"></i> {{ __('messages.stripe') }}</strong>
+                                        <p>{{ __('messages.stripe_desc') }}</p>
+                                    </label>
+                                @endif
+                            @endforeach
+                        @endif
                     </div>
 
                     <div class="form-group">
@@ -197,9 +207,9 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // ============================================
-        // Shipping regions and costs (from settings)
+        // Shipping regions and costs (only region-based)
         // ============================================
-        const regionCosts = @json($regionCosts); // e.g., {"Alger": 200, "Oran": 250, ...}
+        const regionCosts = @json($regionCosts);
         const regionSelect = document.getElementById('regionSelect');
         const shippingSpan = document.getElementById('shippingCost');
         const grandTotalSpan = document.getElementById('grandTotal');
@@ -230,32 +240,130 @@
 
         if (regionSelect) {
             regionSelect.addEventListener('change', updateShippingAndTotal);
-            // If there's an old region value, trigger update
+            // initial update if region already selected
             if (regionSelect.value) {
                 updateShippingAndTotal();
             }
         }
 
-        // If a saved address is selected, set region select and trigger update
-        const addressOptions = document.querySelectorAll('.dropdown-option');
+        // ============================================
+        // Address dropdown and field visibility (existing)
+        // ============================================
+        const addressWrapper = document.getElementById('addressDropdownWrapper');
+        const trigger = document.getElementById('addressDropdownTrigger');
+        const dropdownOptions = document.getElementById('addressDropdownOptions');
         const addressIdInput = document.getElementById('addressIdInput');
-        if (addressOptions && addressIdInput) {
-            addressOptions.forEach(option => {
-                option.addEventListener('click', () => {
-                    const region = option.getAttribute('data-region');
-                    if (region && regionSelect) {
-                        regionSelect.value = region;
-                        updateShippingAndTotal();
+        const addressFieldsWrapper = document.getElementById('addressFieldsWrapper');
+
+        if (addressWrapper && trigger && dropdownOptions && addressIdInput) {
+            // Toggle dropdown
+            trigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                dropdownOptions.classList.toggle('show');
+            });
+            // Close when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!addressWrapper.contains(e.target)) {
+                    dropdownOptions.classList.remove('show');
+                }
+            });
+            // Select option
+            const options = dropdownOptions.querySelectorAll('.dropdown-option');
+            options.forEach(opt => {
+                opt.addEventListener('click', function(e) {
+                    const value = this.getAttribute('data-value');
+                    const region = this.getAttribute('data-region');
+                    addressIdInput.value = value || '';
+                    trigger.querySelector('.trigger-label').innerText = this.innerText;
+
+                    // Toggle address fields visibility
+                    if (value === '') {
+                        // New address: show fields and clear values
+                        addressFieldsWrapper.style.display = 'block';
+                        document.getElementById('address').value = '';
+                        document.getElementById('city').value = '';
+                        if (regionSelect) regionSelect.value = '';
+                        document.getElementById('postal_code').value = '';
+                    } else {
+                        // Saved address: hide fields, optionally prefill region
+                        addressFieldsWrapper.style.display = 'none';
+                        if (region && regionSelect) {
+                            regionSelect.value = region;
+                            updateShippingAndTotal();
+                        }
                     }
+                    dropdownOptions.classList.remove('show');
                 });
             });
         }
 
         // ============================================
-        // Address dropdown toggle & field visibility
-        // (existing code, keep as is)
+        // Coupon logic (existing, keep as is)
         // ============================================
-        // ... (the rest of the existing JavaScript remains unchanged)
+        const applyCouponBtn = document.getElementById('applyCouponBtn');
+        const couponCodeInput = document.getElementById('couponCode');
+        if (applyCouponBtn) {
+            applyCouponBtn.addEventListener('click', function() {
+                const code = couponCodeInput.value.trim();
+                if (!code) {
+                    showToast('{{ __("messages.enter_coupon_code") }}', 'error');
+                    return;
+                }
+                fetch('{{ route("coupon.apply") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ code: code })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const discountRow = document.getElementById('discountRow');
+                        const discountAmount = document.getElementById('discountAmount');
+                        discountRow.style.display = 'flex';
+                        discountAmount.innerText = '- ' + formatCurrency(data.discount);
+                        // Update total
+                        let shipping = parseFloat(shippingSpan.innerText.replace(/[^\d.-]/g, ''));
+                        let total = currentSubtotal - parseFloat(data.discount) + (isNaN(shipping) ? 0 : shipping);
+                        grandTotalSpan.innerText = formatCurrency(total);
+                        showToast('{{ __("messages.coupon_applied") }}', 'success');
+                    } else {
+                        showToast(data.message || '{{ __("messages.invalid_coupon") }}', 'error');
+                    }
+                })
+                .catch(error => {
+                    showToast('{{ __("messages.error_applying_coupon") }}', 'error');
+                });
+            });
+        }
+
+        // Toast message helper
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toastMsg');
+            const toastText = document.getElementById('toastText');
+            toastText.innerText = message;
+            toast.classList.add('show', type === 'success' ? 'toast-success' : 'toast-error');
+            setTimeout(() => {
+                toast.classList.remove('show', 'toast-success', 'toast-error');
+            }, 3000);
+        }
+
+        // ============================================
+        // Place order - ensure region is selected
+        // ============================================
+        const placeOrderBtn = document.getElementById('placeOrderBtn');
+        if (placeOrderBtn) {
+            placeOrderBtn.addEventListener('click', function(e) {
+                if (regionSelect && !regionSelect.value) {
+                    e.preventDefault();
+                    showToast('{{ __("messages.select_region_error") }}', 'error');
+                    regionSelect.focus();
+                }
+                // Spinner handling (optional, keep existing)
+            });
+        }
     });
 </script>
 @endpush

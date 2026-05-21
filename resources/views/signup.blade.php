@@ -4,6 +4,25 @@
 
 @push('styles')
     @vite('resources/css/signup.css')
+    <style>
+        /* Force fixed logo size */
+        .brand-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-radius: 50%;
+            background: #f5f5f5;
+        }
+        .brand-logo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    </style>
 @endpush
 
 @section('content')

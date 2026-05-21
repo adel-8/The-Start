@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $settings['about_page_title'] ?? __('messages.about_page_title'))
+@section('title', $settings['about_page_title_' . app()->getLocale()] ?? $settings['about_page_title_en'] ?? __('messages.about_page_title'))
 
 @push('styles')
     @vite('resources/css/about.css')
@@ -10,7 +10,7 @@
 <div class="about-page">
     <div class="container">
 
-        <!-- Hero Section -->
+        <!-- Hero Section (fully bilingual via $about) -->
         <div class="hero-section">
             <h1>{{ $about['hero']['title'] }}</h1>
             <div class="hero-tagline">{{ $about['hero']['tagline'] }}</div>
@@ -21,19 +21,14 @@
         <div class="mission-vision">
             <div class="mv-card">
                 <div class="mv-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                    </svg>
+                    <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                 </div>
                 <h2>{{ $about['mission']['title'] }}</h2>
                 <p>{{ $about['mission']['text'] }}</p>
             </div>
             <div class="mv-card">
                 <div class="mv-icon">
-                    <svg viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M12 6v6l4 2"/>
-                    </svg>
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                 </div>
                 <h2>{{ $about['vision']['title'] }}</h2>
                 <p>{{ $about['vision']['text'] }}</p>
@@ -45,13 +40,17 @@
             <div class="story-content">
                 <h2>{{ $about['story']['title'] }}</h2>
                 <div class="story-subtitle">{{ $about['story']['subtitle'] }}</div>
-                {!! $about['story']['text'] !!}
+                {!! nl2br(e($about['story']['text'])) !!}
             </div>
         </div>
 
-        <!-- Our Values -->
+        <!-- Our Values (heading bilingual from settings) -->
+        @php
+            $locale = app()->getLocale();
+            $valuesHeading = $settings['about_values_heading_' . $locale] ?? $settings['about_values_heading_en'] ?? __('messages.our_core_values');
+        @endphp
         <div class="values-section">
-            <h2>{{ $settings['about_values_heading'] ?? __('messages.our_core_values') }}</h2>
+            <h2>{{ $valuesHeading }}</h2>
             <div class="values-grid">
                 @foreach($about['values'] as $value)
                 <div class="value-card">
@@ -65,10 +64,14 @@
             </div>
         </div>
 
-        <!-- Why Choose Us -->
+        <!-- Why Choose Us (bilingual headings) -->
+        @php
+            $featuresHeading = $settings['about_features_heading_' . $locale] ?? $settings['about_features_heading_en'] ?? __('messages.why_choose_us');
+            $featuresSubtitle = $settings['about_features_subtitle_' . $locale] ?? $settings['about_features_subtitle_en'] ?? __('messages.experience_ecommerce');
+        @endphp
         <div class="features-section">
-            <h2>{{ $settings['about_features_heading'] ?? __('messages.why_choose_us') }}</h2>
-            <div class="features-subtitle">{{ $settings['about_features_subtitle'] ?? __('messages.experience_ecommerce') }}</div>
+            <h2>{{ $featuresHeading }}</h2>
+            <div class="features-subtitle">{{ $featuresSubtitle }}</div>
             <div class="features-grid">
                 @foreach($about['features'] as $feature)
                 <div class="feature-item">
@@ -84,32 +87,33 @@
 
         <!-- Our Team -->
         @if(count($about['team']) > 0)
-        <div class="team-section">
-            <h2>{{ $settings['about_team_heading'] ?? __('messages.meet_our_team') }}</h2>
-            <div class="team-subtitle">{{ $settings['about_team_subtitle'] ?? __('messages.passionate_people') }}</div>
-            <div class="team-grid">
-                @foreach($about['team'] as $member)
-                    <div class="team-card">
-                        <div class="team-image">
-                            @if($member['image'])
-                                <img src="{{ asset($member['image']) }}" alt="{{ $member['name'] }}">
-                            @else
-                                <svg viewBox="0 0 24 24">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                                    <circle cx="12" cy="7" r="4"/>
-                                </svg>
-                            @endif
+            @php
+                $teamHeading = $settings['about_team_heading_' . $locale] ?? $settings['about_team_heading_en'] ?? __('messages.meet_our_team');
+                $teamSubtitle = $settings['about_team_subtitle_' . $locale] ?? $settings['about_team_subtitle_en'] ?? __('messages.passionate_people');
+            @endphp
+            <div class="team-section">
+                <h2>{{ $teamHeading }}</h2>
+                <div class="team-subtitle">{{ $teamSubtitle }}</div>
+                <div class="team-grid">
+                    @foreach($about['team'] as $member)
+                        <div class="team-card">
+                            <div class="team-image">
+                                @if($member['image'])
+                                    <img src="{{ asset($member['image']) }}" alt="{{ $member['name'] }}">
+                                @else
+                                    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                @endif
+                            </div>
+                            <h3>{{ $member['name'] }}</h3>
+                            <div class="team-role">{{ $member['role'] }}</div>
+                            <p class="team-bio">{{ $member['bio'] }}</p>
                         </div>
-                        <h3>{{ $member['name'] }}</h3>
-                        <div class="team-role">{{ $member['role'] }}</div>
-                        <p class="team-bio">{{ $member['bio'] }}</p>
-                    </div>
-                @endforeach
+                    @endforeach
+                </div>
             </div>
-        </div>
         @endif
 
-        <!-- Call to Action -->
+        <!-- Call to Action (fully bilingual via $about) -->
         <div class="cta-section">
             <h2>{{ $about['cta']['title'] }}</h2>
             <p>{{ $about['cta']['text'] }}</p>
