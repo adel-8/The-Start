@@ -1,3 +1,5 @@
+
+
 @extends('admin.layouts.app')
 
 @section('title', __('admin.site_settings'))
@@ -233,7 +235,7 @@
         @method('PUT')
 
         <!-- ========== GENERAL ========== -->
-        <details class="settings-section settings-card" open>
+        <details class="settings-section settings-card">
             <summary class="settings-card-header">
                 <h2><i class="fas fa-globe"></i> {{ __('admin.general_settings') }}</h2>
                 <i class="fas fa-chevron-down toggle-icon"></i>
@@ -260,55 +262,8 @@
             </div>
         </details>
 
-        <!-- ========== APPEARANCE ========== -->
-        <details class="settings-section settings-card" open>
-            <summary class="settings-card-header">
-                <h2><i class="fas fa-palette"></i> {{ __('admin.appearance') }}</h2>
-                <i class="fas fa-chevron-down toggle-icon"></i>
-            </summary>
-            <div class="settings-card-body">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="logo">{{ __('admin.logo') }}</label>
-                        <input type="file" name="logo" id="logo" accept="image/*">
-                        @if(isset($settings['logo']) && $settings['logo'])
-                            <div class="current-image" data-image-type="logo">
-                                <img src="{{ asset($settings['logo']) }}" class="image-preview-thumb" alt="Logo">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="remove_logo" value="1"> {{ __('admin.remove_logo') }}
-                                </label>
-                            </div>
-                        @endif
-                        <small>{{ __('admin.logo_help') }}</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="favicon">{{ __('admin.favicon') }}</label>
-                        <input type="file" name="favicon" id="favicon" accept="image/x-icon,image/png">
-                        @if(isset($settings['favicon']) && $settings['favicon'])
-                            <div class="current-image" data-image-type="favicon">
-                                <img src="{{ asset($settings['favicon']) }}" class="image-preview-thumb" alt="Favicon">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="remove_favicon" value="1"> {{ __('admin.remove_favicon') }}
-                                </label>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="primary_color">{{ __('admin.primary_color') }}</label>
-                        <input type="color" name="primary_color" id="primary_color" value="{{ old('primary_color', $settings['primary_color'] ?? '#645F7D') }}">
-                    </div>
-                    <div class="form-group">
-                        <label for="accent_color">{{ __('admin.accent_color') }}</label>
-                        <input type="color" name="accent_color" id="accent_color" value="{{ old('accent_color', $settings['accent_color'] ?? '#E0B854') }}">
-                    </div>
-                </div>
-            </div>
-        </details>
-
         <!-- ========== HOME PAGE ========== -->
-        <details class="settings-section settings-card" open>
+        <details class="settings-section settings-card">
             <summary class="settings-card-header">
                 <h2><i class="fas fa-home"></i> {{ __('admin.home_page') }}</h2>
                 <i class="fas fa-chevron-down toggle-icon"></i>
@@ -530,7 +485,7 @@
         </details>
 
         <!-- ========== SHOP PAGE ========== -->
-        <details class="settings-section settings-card" open>
+        <details class="settings-section settings-card">
             <summary class="settings-card-header">
                 <h2><i class="fas fa-store"></i> {{ __('admin.shop_page') }}</h2>
                 <i class="fas fa-chevron-down toggle-icon"></i>
@@ -575,7 +530,7 @@
         </details>
 
         <!-- ========== PRODUCT PAGE ========== -->
-        <details class="settings-section settings-card" open>
+        <details class="settings-section settings-card">
             <summary class="settings-card-header">
                 <h2><i class="fas fa-box"></i> {{ __('admin.product_page') }}</h2>
                 <i class="fas fa-chevron-down toggle-icon"></i>
@@ -629,7 +584,7 @@
         </details>
 
         <!-- ========== CONTACT PAGE ========== -->
-        <details class="settings-section settings-card" open>
+        <details class="settings-section settings-card">
             <summary class="settings-card-header">
                 <h2><i class="fas fa-envelope"></i> {{ __('admin.contact_page') }}</h2>
                 <i class="fas fa-chevron-down toggle-icon"></i>
@@ -708,7 +663,7 @@
         </details>
 
         <!-- ========== ABOUT PAGE ========== -->
-        <details class="settings-section settings-card" open>
+        <details class="settings-section settings-card">
             <summary class="settings-card-header">
                 <h2><i class="fas fa-info-circle"></i> {{ __('admin.about_page') }}</h2>
                 <i class="fas fa-chevron-down toggle-icon"></i>
@@ -942,7 +897,7 @@
         </details>
 
         <!-- ========== FOOTER ========== -->
-        <details class="settings-section settings-card" open>
+        <details class="settings-section settings-card">
             <summary class="settings-card-header">
                 <h2><i class="fas fa-football-ball"></i> {{ __('admin.footer') }}</h2>
                 <i class="fas fa-chevron-down toggle-icon"></i>
@@ -998,24 +953,15 @@
             </div>
         </details>
 
+        
         <!-- ========== CHECKOUT & SHIPPING ========== -->
-        <details class="settings-section settings-card" open>
+        <details class="settings-section settings-card">
             <summary class="settings-card-header">
                 <h2><i class="fas fa-truck"></i> {{ __('admin.checkout_shipping') }}</h2>
                 <i class="fas fa-chevron-down toggle-icon"></i>
             </summary>
             <div class="settings-card-body">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="shipping_cost">{{ __('admin.default_shipping_cost') }}</label>
-                        <input type="number" step="0.01" name="shipping_cost" id="shipping_cost" value="{{ old('shipping_cost', $settings['shipping_cost'] ?? 0) }}" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label for="free_shipping_threshold">{{ __('admin.free_shipping_threshold') }}</label>
-                        <input type="number" step="0.01" name="free_shipping_threshold" id="free_shipping_threshold" value="{{ old('free_shipping_threshold', $settings['free_shipping_threshold'] ?? 0) }}" min="0">
-                        <small>{{ __('admin.free_shipping_threshold_help') }}</small>
-                    </div>
-                </div>
+                <!-- default_shipping_cost and free_shipping_threshold removed as requested -->
 
                 <h4>{{ __('admin.shipping_regions') }}</h4>
                 <p class="text-muted">{{ __('admin.shipping_regions_help') }}</p>
@@ -1048,57 +994,71 @@
                 </div>
 
                 <h4>{{ __('admin.payment_methods') }}</h4>
+                <!-- Payment method enable/disable toggles - restored and fixed -->
                 <div class="form-row">
                     <div class="form-group">
                         <label>{{ __('admin.cash_on_delivery') }}</label>
-                        <select name="payment_cod_enabled">
+                        <select name="payment_cod_enabled" class="payment-toggle">
                             <option value="1" {{ ($settings['payment_cod_enabled'] ?? '1') == '1' ? 'selected' : '' }}>{{ __('admin.enabled') }}</option>
                             <option value="0" {{ ($settings['payment_cod_enabled'] ?? '1') == '0' ? 'selected' : '' }}>{{ __('admin.disabled') }}</option>
                         </select>
+                        <small>{{ __('admin.enable_cod_help') }}</small>
                     </div>
                     <div class="form-group">
                         <label>{{ __('admin.baridimob') }}</label>
-                        <select name="payment_baridimob_enabled">
+                        <select name="payment_baridimob_enabled" class="payment-toggle">
                             <option value="1" {{ ($settings['payment_baridimob_enabled'] ?? '1') == '1' ? 'selected' : '' }}>{{ __('admin.enabled') }}</option>
                             <option value="0" {{ ($settings['payment_baridimob_enabled'] ?? '1') == '0' ? 'selected' : '' }}>{{ __('admin.disabled') }}</option>
                         </select>
+                        <small>{{ __('admin.enable_baridimob_help') }}</small>
                     </div>
                     <div class="form-group">
                         <label>{{ __('admin.stripe') }}</label>
-                        <select name="payment_stripe_enabled">
+                        <select name="payment_stripe_enabled" class="payment-toggle">
                             <option value="1" {{ ($settings['payment_stripe_enabled'] ?? '0') == '1' ? 'selected' : '' }}>{{ __('admin.enabled') }}</option>
                             <option value="0" {{ ($settings['payment_stripe_enabled'] ?? '0') == '0' ? 'selected' : '' }}>{{ __('admin.disabled') }}</option>
                         </select>
+                        <small>{{ __('admin.enable_stripe_help') }}</small>
                     </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="stripe_public_key">{{ __('admin.stripe_public_key') }}</label>
-                        <input type="text" name="stripe_public_key" id="stripe_public_key" value="{{ old('stripe_public_key', $settings['stripe_public_key'] ?? '') }}">
+
+                <!-- Stripe configuration fields (only shown if Stripe enabled - can add JS to hide/show) -->
+                <div id="stripe-config" class="payment-config" data-payment="stripe">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stripe_public_key">{{ __('admin.stripe_public_key') }}</label>
+                            <input type="text" name="stripe_public_key" id="stripe_public_key" value="{{ old('stripe_public_key', $settings['stripe_public_key'] ?? '') }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="stripe_secret_key">{{ __('admin.stripe_secret_key') }}</label>
+                            <input type="password" name="stripe_secret_key" id="stripe_secret_key" value="{{ old('stripe_secret_key', $settings['stripe_secret_key'] ?? '') }}" autocomplete="off">
+                            <small>{{ __('admin.stripe_key_help') }}</small>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="stripe_secret_key">{{ __('admin.stripe_secret_key') }}</label>
-                        <input type="password" name="stripe_secret_key" id="stripe_secret_key" value="{{ old('stripe_secret_key', $settings['stripe_secret_key'] ?? '') }}" autocomplete="off">
-                        <small>{{ __('admin.stripe_key_help') }}</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="baridimob_account_name">{{ __('admin.baridimob_account_name') }}</label>
-                        <input type="text" name="baridimob_account_name" id="baridimob_account_name" value="{{ old('baridimob_account_name', $settings['baridimob_account_name'] ?? 'The Start E-commerce') }}">
-                    </div>
-                    <div class="form-group">
-                        <label for="baridimob_account">{{ __('admin.baridimob_account') }}</label>
-                        <input type="text" name="baridimob_account" id="baridimob_account" value="{{ old('baridimob_account', $settings['baridimob_account'] ?? '123 456 789 01') }}">
-                    </div>
-                    <div class="form-group">
-                        <label for="baridimob_bank">{{ __('admin.baridimob_bank') }}</label>
-                        <input type="text" name="baridimob_bank" id="baridimob_bank" value="{{ old('baridimob_bank', $settings['baridimob_bank'] ?? 'Algerian Post (BaridiMob)') }}">
+                </div>
+
+                <!-- Baridimob configuration fields -->
+                <div id="baridimob-config" class="payment-config" data-payment="baridimob">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="baridimob_account_name">{{ __('admin.baridimob_account_name') }}</label>
+                            <input type="text" name="baridimob_account_name" id="baridimob_account_name" value="{{ old('baridimob_account_name', $settings['baridimob_account_name'] ?? 'The Start E-commerce') }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="baridimob_account">{{ __('admin.baridimob_account') }}</label>
+                            <input type="text" name="baridimob_account" id="baridimob_account" value="{{ old('baridimob_account', $settings['baridimob_account'] ?? '123 456 789 01') }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="baridimob_bank">{{ __('admin.baridimob_bank') }}</label>
+                            <input type="text" name="baridimob_bank" id="baridimob_bank" value="{{ old('baridimob_bank', $settings['baridimob_bank'] ?? 'Algerian Post (BaridiMob)') }}">
+                        </div>
                     </div>
                 </div>
             </div>
         </details>
 
         <!-- ========== AUTHENTICATION ========== -->
-        <details class="settings-section settings-card" open>
+        <details class="settings-section settings-card">
             <summary class="settings-card-header">
                 <h2><i class="fas fa-user-lock"></i> {{ __('admin.authentication') }}</h2>
                 <i class="fas fa-chevron-down toggle-icon"></i>
@@ -1112,14 +1072,7 @@
                             <option value="0" {{ ($settings['enable_google_login'] ?? '1') == '0' ? 'selected' : '' }}>{{ __('admin.no') }}</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="enable_github_login">{{ __('admin.enable_github_login') }}</label>
-                        <select name="enable_github_login" id="enable_github_login">
-                            <option value="1" {{ ($settings['enable_github_login'] ?? '0') == '1' ? 'selected' : '' }}>{{ __('admin.yes') }}</option>
-                            <option value="0" {{ ($settings['enable_github_login'] ?? '0') == '0' ? 'selected' : '' }}>{{ __('admin.no') }}</option>
-                        </select>
-                        <small>{{ __('admin.github_login_note') }}</small>
-                    </div>
+                    <!-- Removed GitHub login option completely as requested -->
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -1153,7 +1106,7 @@
         </details>
 
         <!-- ========== LEGAL PAGES ========== -->
-        <details class="settings-section settings-card" open>
+        <details class="settings-section settings-card">
             <summary class="settings-card-header">
                 <h2><i class="fas fa-gavel"></i> {{ __('admin.legal_pages') }}</h2>
                 <i class="fas fa-chevron-down toggle-icon"></i>
@@ -1240,6 +1193,20 @@
                 textarea.classList.remove('valid-json');
             }
         });
+    });
+    // Toggle payment config visibility
+    document.querySelectorAll('.payment-toggle').forEach(toggle => {
+        const paymentType = toggle.closest('.form-group').querySelector('label').innerText.toLowerCase();
+        const configDiv = paymentType.includes('stripe') ? document.getElementById('stripe-config') : 
+                        (paymentType.includes('baridimob') ? document.getElementById('baridimob-config') : null);
+        
+        const updateVisibility = () => {
+            if (configDiv) {
+                configDiv.style.display = toggle.value === '1' ? 'flex' : 'none';
+            }
+        };
+        toggle.addEventListener('change', updateVisibility);
+        updateVisibility();
     });
 </script>
 @endpush

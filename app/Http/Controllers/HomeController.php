@@ -11,7 +11,7 @@ class HomeController extends Controller
 {
     public function home()
     {
-        // Fetch all settings once
+        // Fetch all settings once (includes bilingual keys)
         $settings = Setting::pluck('setting_value', 'setting_key');
 
         // Best Sellers
@@ -42,22 +42,19 @@ class HomeController extends Controller
 
         if ($category) {
             $categoryProducts = $category->products()->where('status', 'active')->take(8)->get();
-            $featuredCategoryName = $category->name; // use the actual category name for the title
+            $featuredCategoryName = $category->name;
         }
 
-        // CTA settings with fallbacks
-        $ctaTitle = $settings['home_cta_title'] ?? 'Discover our full collection';
-        $ctaText = $settings['home_cta_text'] ?? 'Explore thousands of products curated just for you.';
-        $ctaButtonText = $settings['home_cta_button_text'] ?? 'Shop Now';
+        // CTA button link (shared, not bilingual)
         $ctaButtonLink = $settings['home_cta_button_link'] ?? route('Shop');
 
-        // Hero banners (collection)
+        // Hero banners
         $banners = Banner::latest()->take(3)->get();
 
-        // Pass all variables to view
+        // Pass all variables to view – removed $ctaTitle, $ctaText, $ctaButtonText
         return view('home', compact(
             'bestsellers', 'newArrivals', 'categoryProducts', 'banners', 'settings',
-            'featuredCategoryName', 'ctaTitle', 'ctaText', 'ctaButtonText', 'ctaButtonLink'
+            'featuredCategoryName', 'ctaButtonLink'
         ));
     }
 }
