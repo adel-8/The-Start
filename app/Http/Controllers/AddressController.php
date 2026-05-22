@@ -93,13 +93,19 @@ class AddressController extends Controller
         return redirect()->route('addresses.index')->with('success', 'Address deleted.');
     }
 
-    public function setDefault(Address $address)
-    {
-        if ($address->user_id !== Auth::id()) {
-            abort(403);
-        }
-        Auth::user()->addresses()->update(['is_default' => false]);
-        $address->update(['is_default' => true]);
-        return redirect()->route('addresses.index')->with('success', 'Default address updated.');
-    }
+    // app/Http/Controllers/AddressController.php
+public function setDefault(Address $address)
+{
+    // Optional: authorize (if you have a policy)
+    // $this->authorize('update', $address);
+
+    // First, remove default from all user's addresses
+    Address::where('user_id', auth()->id())->update(['is_default' => false]);
+
+    // Then set the selected address as default
+    $address->is_default = true;
+    $address->save();
+
+    return redirect()->route('addresses.index')->with('success', __('messages.default_address_updated'));
+}
 }

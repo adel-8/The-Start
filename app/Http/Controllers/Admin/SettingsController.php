@@ -237,6 +237,16 @@ class SettingsController extends Controller
             'terms_of_service' => 'nullable|string|max:10000',
             'shipping_policy' => 'nullable|string|max:5000',
             'return_policy' => 'nullable|string|max:5000',
+
+            // Add inside the $rules array (around line 200-250, where legal pages are)
+            'terms_of_service_en' => 'nullable|string',
+            'terms_of_service_ar' => 'nullable|string',
+            'privacy_policy_en' => 'nullable|string',
+            'privacy_policy_ar' => 'nullable|string',
+            'shipping_policy_en' => 'nullable|string',
+            'shipping_policy_ar' => 'nullable|string',
+            'return_policy_en' => 'nullable|string',
+            'return_policy_ar' => 'nullable|string',
         ];
 
         $validated = $request->validate($rules);
