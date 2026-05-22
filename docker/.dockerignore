@@ -1,0 +1,10 @@
+.env
+.git
+node_modules
+storage/*.sqlite
+tests
+*.log
+*.zip
+*.tar
+.vscode
+.idea
