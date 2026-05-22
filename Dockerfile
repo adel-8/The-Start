@@ -40,7 +40,9 @@ EXPOSE 8080
 # Start command: inject PORT, run migrations & cache, then start services
 CMD ["sh", "-c", "\
     envsubst '${PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && \
-    php artisan migrate --force && \
+    php artisan config:clear && \
+    php artisan migrate:fresh --force && \
+    php artisan db:seed --force && \
     php artisan storage:link && \
     php artisan config:cache && \
     php artisan route:cache && \

@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::table('orders', function (Blueprint $table) {
-            $table->string('payment_proof')->nullable()->after('notes');
-        });
+        if (!Schema::hasColumn('orders', 'payment_proof')) {
+            Schema::table('orders', function (Blueprint $table) {
+                $table->string('payment_proof')->nullable();
+            });
+        }
     }
     /**
      * Reverse the migrations.
