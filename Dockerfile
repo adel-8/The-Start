@@ -15,14 +15,12 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl xml
 
 # Create PHP-FPM pool configuration using a Unix socket
+# Replace the socket config with TCP
 RUN mkdir -p /var/run/php && \
     echo "[www]" > /usr/local/etc/php-fpm.d/www.conf && \
     echo "user = www-data" >> /usr/local/etc/php-fpm.d/www.conf && \
     echo "group = www-data" >> /usr/local/etc/php-fpm.d/www.conf && \
-    echo "listen = /var/run/php/php8.2-fpm.sock" >> /usr/local/etc/php-fpm.d/www.conf && \
-    echo "listen.owner = www-data" >> /usr/local/etc/php-fpm.d/www.conf && \
-    echo "listen.group = www-data" >> /usr/local/etc/php-fpm.d/www.conf && \
-    echo "listen.mode = 0660" >> /usr/local/etc/php-fpm.d/www.conf && \
+    echo "listen = 0.0.0.0:9000" >> /usr/local/etc/php-fpm.d/www.conf && \
     echo "pm = dynamic" >> /usr/local/etc/php-fpm.d/www.conf && \
     echo "pm.max_children = 5" >> /usr/local/etc/php-fpm.d/www.conf && \
     echo "pm.start_servers = 2" >> /usr/local/etc/php-fpm.d/www.conf && \
@@ -62,5 +60,5 @@ CMD ["sh", "-c", "\
     php artisan route:cache && \
     php artisan view:cache && \
     php-fpm -D && \
-    sleep 2 && \
+    sleep 3 && \
     nginx -g 'daemon off;'"]
