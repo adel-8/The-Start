@@ -21,6 +21,4 @@ RUN composer install --no-dev --optimize-autoloader
 
 EXPOSE $PORT
 
-CMD php artisan migrate --force && \
-    php artisan storage:link && \
-    php -S 0.0.0.0:$PORT -t public
+CMD ["sh", "-c", "php artisan migrate --force && php artisan storage:link && php -S 0.0.0.0:$PORT -t public"]
