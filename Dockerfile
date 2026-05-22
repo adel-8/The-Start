@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
     libpng-dev libonig-dev libxml2-dev zip unzip libzip-dev libicu-dev \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl xml
 
-# PHP-FPM config: listen on TCP port 9000 (all interfaces)
+# PHP-FPM config: listen on TCP port 9000
 RUN echo "[www]" > /usr/local/etc/php-fpm.d/www.conf && \
     echo "user = www-data" >> /usr/local/etc/php-fpm.d/www.conf && \
     echo "group = www-data" >> /usr/local/etc/php-fpm.d/www.conf && \
@@ -38,7 +38,5 @@ CMD ["sh", "-c", "\
     php artisan route:cache && \
     php artisan view:cache && \
     php-fpm -D && \
-    echo 'Waiting for PHP-FPM to bind...' && \
-    while ! nc -z 127.0.0.1 9000; do sleep 1; done && \
-    echo 'PHP-FPM is ready' && \
+    sleep 3 && \
     nginx -g 'daemon off;'"]
