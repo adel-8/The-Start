@@ -10,8 +10,12 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
+        // Skip this migration if the column already uses the correct enum
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return; // SQLite doesn't support ENUM, we'll skip
+        }
         DB::statement("ALTER TABLE orders MODIFY payment_method ENUM('cash_on_delivery', 'stripe', 'baridimob') NOT NULL");
     }
 
