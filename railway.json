@@ -4,8 +4,7 @@
     "buildCommand": "composer install --no-dev --optimize-autoloader && php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan storage:link"
   },
   "deploy": {
-    "startCommand": "php artisan serve --host=0.0.0.0 --port=$PORT",
-    "healthcheckPath": "/up",
-    "restartPolicyType": "ON_FAILURE"
+    "startCommand": "php artisan serve --host=0.0.0.0 --port=$PORT"
+   
   }
 }
