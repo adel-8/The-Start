@@ -41,8 +41,7 @@ EXPOSE 8080
 CMD ["sh", "-c", "\
     envsubst '${PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && \
     php artisan config:clear && \
-    php artisan migrate:fresh --force && \
-    php artisan db:seed --force && \
+    php artisan migrate --force && \
     php artisan storage:link && \
     php artisan config:cache && \
     php artisan route:cache && \
