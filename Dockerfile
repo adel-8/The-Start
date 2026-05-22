@@ -14,9 +14,9 @@ RUN apt-get update && apt-get install -y \
     libicu-dev \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl xml
 
-# Configure PHP-FPM to listen on TCP port 9000 (instead of Unix socket)
+# Configure PHP-FPM to listen on TCP port 9000 and allow all clients
 RUN sed -i 's/listen = \/run\/php\/php8.2-fpm.sock/listen = 9000/g' /usr/local/etc/php-fpm.d/www.conf && \
-    sed -i 's/;listen.allowed_clients = 127.0.0.1/listen.allowed_clients = 127.0.0.1/g' /usr/local/etc/php-fpm.d/www.conf
+    sed -i '/^listen.allowed_clients/d' /usr/local/etc/php-fpm.d/www.conf
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
