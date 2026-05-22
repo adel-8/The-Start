@@ -39,7 +39,10 @@ EXPOSE 8080
 
 # Start command: inject PORT, run migrations & cache, then start services
 CMD ["sh", "-c", "\
+    echo \"PORT is ${PORT}\" && \
     envsubst '${PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && \
+    echo \"=== Generated nginx.conf ===\" && \
+    cat /etc/nginx/nginx.conf && \
     php artisan config:clear && \
     php artisan migrate --force && \
     php artisan storage:link && \
@@ -47,4 +50,7 @@ CMD ["sh", "-c", "\
     php artisan route:cache && \
     php artisan view:cache && \
     php-fpm -D && \
+    sleep 3 && \
+    echo \"Testing PHP-FPM connection...\" && \
+    curl -v http://127.0.0.1:9000 2>&1 || echo \"PHP-FPM port 9000 not accessible\" && \
     nginx -g 'daemon off;'"]
