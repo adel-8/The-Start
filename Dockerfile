@@ -5,11 +5,11 @@ RUN apt-get update && apt-get install -y \
     libpng-dev libonig-dev libxml2-dev zip unzip libzip-dev libicu-dev \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl xml
 
-# PHP-FPM config: listen on TCP port 9000
+# PHP-FPM config: listen explicitly on 127.0.0.1:9000
 RUN echo "[www]" > /usr/local/etc/php-fpm.d/www.conf && \
     echo "user = www-data" >> /usr/local/etc/php-fpm.d/www.conf && \
     echo "group = www-data" >> /usr/local/etc/php-fpm.d/www.conf && \
-    echo "listen = 9000" >> /usr/local/etc/php-fpm.d/www.conf && \
+    echo "listen = 127.0.0.1:9000" >> /usr/local/etc/php-fpm.d/www.conf && \
     echo "pm = dynamic" >> /usr/local/etc/php-fpm.d/www.conf && \
     echo "pm.max_children = 5" >> /usr/local/etc/php-fpm.d/www.conf && \
     echo "pm.start_servers = 2" >> /usr/local/etc/php-fpm.d/www.conf && \
@@ -26,17 +26,12 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts && \
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache && \
     chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
+# Use a startup script instead of inline CMD
+COPY docker/start.sh /start.sh
+RUN chmod +x /start.sh
+
 COPY docker/nginx.conf /etc/nginx/nginx.conf.template
+
 EXPOSE 8080
 
-CMD ["sh", "-c", "\
-    envsubst '${PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && \
-    php artisan config:clear || true && \
-    php artisan migrate --force && \
-    php artisan storage:link --force || true && \
-    php artisan config:cache && \
-    php artisan route:cache && \
-    php artisan view:cache && \
-    php-fpm -D && \
-    sleep 3 && \
-    nginx -g 'daemon off;'"]
+CMD ["/start.sh"]
