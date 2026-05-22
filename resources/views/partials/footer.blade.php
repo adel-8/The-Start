@@ -1,30 +1,38 @@
 @php
-    // $settings is expected to be available in all views
+    $locale = app()->getLocale();
     $siteName   = $settings['site_name'] ?? config('app.name');
     $siteEmail  = $settings['site_email'] ?? 'support@thestart.com';
     $sitePhone  = $settings['site_phone'] ?? '+213 123 45 67 89';
     $siteAddress = $settings['site_address'] ?? '123 Algiers Street, Algiers, Algeria 16000';
 
-    $aboutText = $settings['footer_about_text'] ?? __('messages.about_footer_default');
+    // Bilingual footer about text
+    $aboutTextKey = 'footer_about_text_' . $locale;
+    $aboutTextFallback = 'footer_about_text_en';
+    $aboutText = $settings[$aboutTextKey] ?? $settings[$aboutTextFallback] ?? __('messages.about_footer_default');
+
+    // Quick links (JSON) – assumed to be the same for both languages or already bilingual in stored JSON
     $quickLinks = isset($settings['footer_quick_links']) && $settings['footer_quick_links']
         ? json_decode($settings['footer_quick_links'], true)
         : null;
     $quickLinks = is_array($quickLinks) ? $quickLinks : [
         ['label' => __('messages.about_us'), 'url' => route('about')],
         ['label' => __('messages.contact_us'), 'url' => route('contact')],
-        ['label' => __('messages.faqs'), 'url' => '#'],
-        ['label' => __('messages.shipping_policy'), 'url' => '#']
+        ['label' => __('messages.faqs'), 'url' => route('about')], // change if you have a FAQ page
+        ['label' => __('messages.shipping_policy'), 'url' => route('shipping.policy')]
     ];
 
+    // Customer service links (JSON) – same assumption
     $customerLinks = isset($settings['footer_customer_service']) && $settings['footer_customer_service']
         ? json_decode($settings['footer_customer_service'], true)
         : null;
+ 
     $customerLinks = is_array($customerLinks) ? $customerLinks : [
-        ['label' => __('messages.returns'), 'url' => '#'],
-        ['label' => __('messages.order_tracking'), 'url' => '#'],
-        ['label' => __('messages.terms_conditions'), 'url' => '#'],
-        ['label' => __('messages.privacy_policy'), 'url' => '#']
+        ['label' => __('messages.returns'), 'url' => route('return.policy')],
+        ['label' => __('messages.order_tracking'), 'url' =>  route('orders.index')],
+        ['label' => __('messages.terms_conditions'), 'url' => route('terms')],
+        ['label' => __('messages.privacy_policy'), 'url' => route('privacy')]
     ];
+
     $copyrightText = $settings['footer_copyright'] ?? __('messages.copyright_default');
 
     $facebook  = $settings['facebook_url'] ?? '';

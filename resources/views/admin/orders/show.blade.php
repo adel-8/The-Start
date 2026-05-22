@@ -82,10 +82,10 @@
             <div class="form-group">
                 <label for="payment_status">{{ __('admin.payment_status') }}</label>
                 <select name="payment_status" id="payment_status">
-                    <option value="pending" {{ $order->payment_status == 'pending' ? 'selected' : '' }}>{{ __('payment.pending') }}</option>
-                    <option value="paid" {{ $order->payment_status == 'paid' ? 'selected' : '' }}>{{ __('payment.paid') }}</option>
-                    <option value="failed" {{ $order->payment_status == 'failed' ? 'selected' : '' }}>{{ __('payment.failed') }}</option>
-                    <option value="refunded" {{ $order->payment_status == 'refunded' ? 'selected' : '' }}>{{ __('payment.refunded') }}</option>
+                    <option value="pending" {{ $order->payment_status == 'pending' ? 'selected' : '' }}>{{ __('admin.pending') }}</option>
+                    <option value="paid" {{ $order->payment_status == 'paid' ? 'selected' : '' }}>{{ __('admin.paid') }}</option>
+                    <option value="failed" {{ $order->payment_status == 'failed' ? 'selected' : '' }}>{{ __('admin.failed') }}</option>
+                    <option value="refunded" {{ $order->payment_status == 'refunded' ? 'selected' : '' }}>{{ __('admin.refunded') }}</option>
                 </select>
             </div>
 

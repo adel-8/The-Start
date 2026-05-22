@@ -34,6 +34,7 @@ use App\Http\Controllers\AddressController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,8 +47,7 @@ Route::get('/Shop', [ShopController::class, 'Shop'])->name('Shop');
 Route::get('/product/{slug}', [ProductController::class, 'show'])->name('product.show');
 Route::get('/about', [AboutController::class, 'about'])->name('about');
 // Legal pages (using settings from database)
-Route::get('/terms', [App\Http\Controllers\PageController::class, 'terms'])->name('terms');
-Route::get('/privacy', [App\Http\Controllers\PageController::class, 'privacy'])->name('privacy');
+
 
 /*
 |--------------------------------------------------------------------------
@@ -251,3 +251,10 @@ Route::get('/locale/{locale}', function ($locale) {
     session(['locale' => $locale]);
     return redirect()->back();
 })->name('locale');
+
+
+// Legal pages (using settings from database)
+Route::get('/terms', [App\Http\Controllers\PageController::class, 'terms'])->name('terms');
+Route::get('/privacy', [App\Http\Controllers\PageController::class, 'privacy'])->name('privacy');
+Route::get('/return-policy', [App\Http\Controllers\PageController::class, 'returnPolicy'])->name('return.policy');
+Route::get('/shipping-policy', [App\Http\Controllers\PageController::class, 'shippingPolicy'])->name('shipping.policy');

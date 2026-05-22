@@ -1106,27 +1106,59 @@
         </details>
 
         <!-- ========== LEGAL PAGES ========== -->
+           
         <details class="settings-section settings-card">
             <summary class="settings-card-header">
                 <h2><i class="fas fa-gavel"></i> {{ __('admin.legal_pages') }}</h2>
                 <i class="fas fa-chevron-down toggle-icon"></i>
             </summary>
             <div class="settings-card-body">
-                <div class="form-group">
-                    <label for="privacy_policy">{{ __('admin.privacy_policy') }}</label>
-                    <textarea name="privacy_policy" id="privacy_policy" rows="8">{{ old('privacy_policy', $settings['privacy_policy'] ?? '') }}</textarea>
+                <!-- Terms of Service (bilingual) -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="terms_of_service_en">Terms of Service (English)</label>
+                        <textarea name="terms_of_service_en" id="terms_of_service_en" rows="8">{{ old('terms_of_service_en', $settings['terms_of_service_en'] ?? '') }}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="terms_of_service_ar">Terms of Service (العربية)</label>
+                        <textarea name="terms_of_service_ar" id="terms_of_service_ar" rows="8">{{ old('terms_of_service_ar', $settings['terms_of_service_ar'] ?? '') }}</textarea>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="terms_of_service">{{ __('admin.terms_of_service') }}</label>
-                    <textarea name="terms_of_service" id="terms_of_service" rows="8">{{ old('terms_of_service', $settings['terms_of_service'] ?? '') }}</textarea>
+
+                <!-- Privacy Policy (bilingual) -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="privacy_policy_en">Privacy Policy (English)</label>
+                        <textarea name="privacy_policy_en" id="privacy_policy_en" rows="8">{{ old('privacy_policy_en', $settings['privacy_policy_en'] ?? '') }}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="privacy_policy_ar">Privacy Policy (العربية)</label>
+                        <textarea name="privacy_policy_ar" id="privacy_policy_ar" rows="8">{{ old('privacy_policy_ar', $settings['privacy_policy_ar'] ?? '') }}</textarea>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="shipping_policy">{{ __('admin.shipping_policy') }}</label>
-                    <textarea name="shipping_policy" id="shipping_policy" rows="6">{{ old('shipping_policy', $settings['shipping_policy'] ?? '') }}</textarea>
+
+                <!-- Shipping Policy (bilingual) -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="shipping_policy_en">Shipping Policy (English)</label>
+                        <textarea name="shipping_policy_en" id="shipping_policy_en" rows="8">{{ old('shipping_policy_en', $settings['shipping_policy_en'] ?? '') }}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="shipping_policy_ar">Shipping Policy (العربية)</label>
+                        <textarea name="shipping_policy_ar" id="shipping_policy_ar" rows="8">{{ old('shipping_policy_ar', $settings['shipping_policy_ar'] ?? '') }}</textarea>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="return_policy">{{ __('admin.return_policy') }}</label>
-                    <textarea name="return_policy" id="return_policy" rows="6">{{ old('return_policy', $settings['return_policy'] ?? '') }}</textarea>
+
+                <!-- Return Policy (bilingual) -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="return_policy_en">Return Policy (English)</label>
+                        <textarea name="return_policy_en" id="return_policy_en" rows="8">{{ old('return_policy_en', $settings['return_policy_en'] ?? '') }}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="return_policy_ar">Return Policy (العربية)</label>
+                        <textarea name="return_policy_ar" id="return_policy_ar" rows="8">{{ old('return_policy_ar', $settings['return_policy_ar'] ?? '') }}</textarea>
+                    </div>
                 </div>
             </div>
         </details>
