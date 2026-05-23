@@ -525,4 +525,5 @@ return [
     'btn_reset' => 'Reset',
     'btn_add' => 'Add',
     'all' => 'All',
+    'settings_updated' => 'Settings updated successfully.',
 ];
