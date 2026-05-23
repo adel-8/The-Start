@@ -7,8 +7,8 @@ RUN apt-get update && apt-get install -y \
 
 # PHP-FPM config: run as root, listen on 127.0.0.1:9000
 RUN echo "[www]" > /usr/local/etc/php-fpm.d/www.conf && \
-    echo "user = root" >> /usr/local/etc/php-fpm.d/www.conf && \
-    echo "group = root" >> /usr/local/etc/php-fpm.d/www.conf && \
+    echo "user = www-data" >> /usr/local/etc/php-fpm.d/www.conf && \
+    echo "group = www-data" >> /usr/local/etc/php-fpm.d/www.conf && \
     echo "listen = 127.0.0.1:9000" >> /usr/local/etc/php-fpm.d/www.conf && \
     echo "pm = dynamic" >> /usr/local/etc/php-fpm.d/www.conf && \
     echo "pm.max_children = 5" >> /usr/local/etc/php-fpm.d/www.conf && \
