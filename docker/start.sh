@@ -1,9 +1,14 @@
 #!/bin/sh
 set -e
 
-# Replace only ${PORT} in nginx config, leave all other $ variables untouched
+echo "=== PORT is: $PORT ==="
+
+# Replace PORT in nginx config
 sed -i "s/\${PORT}/$PORT/g" /etc/nginx/nginx.conf.template
 cp /etc/nginx/nginx.conf.template /etc/nginx/nginx.conf
+
+echo "=== nginx.conf after substitution ==="
+cat /etc/nginx/nginx.conf
 
 # Laravel setup
 php artisan config:clear || true
@@ -15,9 +20,10 @@ php artisan view:cache
 
 # Start PHP-FPM
 php-fpm -D
-
-# Wait for FPM to be ready
 sleep 3
 
-# Start Nginx
-nginx -g 'daemon off;'
+echo "=== Checking if FPM is listening ==="
+netstat -tlnp 2>/dev/null || ss -tlnp
+
+echo "=== Starting nginx ==="
+nginx -t && nginx -g 'daemon off;'
