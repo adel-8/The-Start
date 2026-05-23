@@ -11,7 +11,7 @@
     <div class="container">
         <!-- Breadcrumb -->
         <nav class="breadcrumb" aria-label="breadcrumb">
-            <a href="{{ route('/') }}">{{ __('messages.home') }}</a>
+            <a href="{{ route('home') }}">{{ __('messages.home') }}</a>
             <span class="separator">/</span>
             <a href="{{ route('Shop') }}">{{ __('messages.shop') }}</a>
             <span class="separator">/</span>
