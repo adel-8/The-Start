@@ -107,7 +107,7 @@
       @endif
       
       @if(isset($settings['enable_guest_checkout']) && $settings['enable_guest_checkout'])
-        <a href="{{ route('home') }}" class="social-btn" id="signinRedirect">{{ __('messages.continue_as_guest') }}</a>
+        <a href="{{ route('/') }}" class="social-btn" id="signinRedirect">{{ __('messages.continue_as_guest') }}</a>
       @endif
     </div>
 
