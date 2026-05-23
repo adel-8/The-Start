@@ -366,4 +366,5 @@ return [
     'delete' => 'Delete',
     'edit' => 'Edit',
     'default_address_updated' => 'Default address updated.',
+    'no_description' => 'No description available.',
 ];

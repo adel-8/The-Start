@@ -182,7 +182,7 @@
 
             <hr>
             <div class="text-center">
-                <a href="{{ route('/') }}" class="btn-outline">{{ __('messages.continue_shopping') }}</a>
+                <a href="{{ route('home') }}" class="btn-outline">{{ __('messages.continue_shopping') }}</a>
             </div>
         </div>
     </div>
