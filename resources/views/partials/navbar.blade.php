@@ -6,11 +6,11 @@
 <nav class="navbar">
   <div class="navbar-container">
     <!-- Logo -->
-    <a href="{{ route('/') }}" class="logo">{{ $siteName }}</a>
+    <a href="{{ route('home') }}" class="logo">{{ $siteName }}</a>
 
     <!-- Desktop Navigation Links -->
     <div class="nav-links">
-      <a href="{{ route('/') }}">{{ __('messages.home') }}</a>
+      <a href="{{ route('home') }}">{{ __('messages.home') }}</a>
       <a href="{{ route('Shop') }}">{{ __('messages.shop') }}</a>
       <a href="{{ route('contact') }}">{{ __('messages.contact') }}</a>
       <a href="{{ route('about') }}">{{ __('messages.about') }}</a>
