@@ -3,7 +3,7 @@
 @section('title', __('messages.signup_title') . ' · ' . ($settings['site_name'] ?? config('app.name', 'The Start')))
 
 @push('styles')
-    @vite('resources/css/signup.css')
+    @vite('resources/css/signUp.css')
     <style>
         /* Force fixed logo size */
         .brand-logo {
