@@ -373,7 +373,7 @@
                     <a href="{{ route('profile.edit') }}" class="btn btn-primary">
                         <i class="fas fa-pen-alt"></i> {{ __('messages.edit_profile') }}
                     </a>
-                    <a href="{{ route('home') }}" class="btn btn-outline">
+                    <a href="{{ route('/') }}" class="btn btn-outline">
                         <i class="fas fa-home"></i> {{ __('messages.back_to_home') }}
                     </a>
                 </div>
