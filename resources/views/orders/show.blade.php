@@ -28,10 +28,11 @@
 
             <div class="order-status">
                 <span class="status-badge status-{{ strtolower($order->status) }}">
-                    {{ __('messages.status_'.$order->status) }}
+                    {{ __('messages.status_' . $order->status) }}
                 </span>
                 <span class="payment-method">
-                    <i class="fas fa-credit-card"></i> {{ __('messages.payment_method_'.$order->payment_method) }}
+                    <i class="fas fa-credit-card"></i>
+                    {{ __('messages.payment_method_' . $order->payment_method) }}
                 </span>
             </div>
 
@@ -45,33 +46,54 @@
                                 {{ $item->product?->name ?? __('messages.product_unavailable') }}
                             </div>
                             <div class="item-qty">× {{ $item->quantity }}</div>
-                            <div class="item-price">${{ number_format($item->price_at_purchase, 2) }}</div>
-                            <div class="item-total">${{ number_format($item->price_at_purchase * $item->quantity, 2) }}</div>
+                            <div class="item-price">{{ format_currency($item->price_at_purchase) }}</div>
+                            <div class="item-total">{{ format_currency($item->price_at_purchase * $item->quantity) }}</div>
                         </div>
                     @endforeach
                 </div>
 
                 {{-- Totals --}}
                 @php
-                    $subtotal = $order->items->sum(fn($item) => $item->price_at_purchase * $item->quantity);
-                    $discountAmount = $subtotal - $order->total_price;
+                    $subtotal       = $order->items->sum(fn($item) => $item->price_at_purchase * $item->quantity);
+                    $discountAmount = $subtotal + ($order->shipping_cost ?? 0) - $order->total_price;
                 @endphp
+
                 <div class="totals">
                     <div class="totals-row">
                         <span>{{ __('messages.subtotal') }}</span>
-                        <span>${{ number_format($subtotal, 2) }}</span>
+                        <span>{{ format_currency($subtotal) }}</span>
                     </div>
+
                     @if($discountAmount > 0)
                         <div class="totals-row discount">
-                            <span>{{ __('messages.coupon_label') }} @if($order->coupon)({{ $order->coupon->code }})@endif</span>
-                            <span>-${{ number_format($discountAmount, 2) }}</span>
+                            <span>
+                                {{ __('messages.coupon_label') }}
+                                @if($order->coupon)({{ $order->coupon->code }})@endif
+                            </span>
+                            <span>-{{ format_currency($discountAmount) }}</span>
                         </div>
                     @endif
+
+                    @if(($order->shipping_cost ?? 0) > 0)
+                        <div class="totals-row">
+                            <span>{{ __('messages.shipping') }}</span>
+                            <span>{{ format_currency($order->shipping_cost) }}</span>
+                        </div>
+                    @endif
+
                     <div class="totals-row total">
-                        <span>{{ __('messages.total') }}</span>
-                        <span>${{ number_format($order->total_price, 2) }}</span>
+                        <span><strong>{{ __('messages.total') }}</strong></span>
+                        <span><strong>{{ format_currency($order->total_price) }}</strong></span>
                     </div>
                 </div>
+
+                {{-- Order notes --}}
+                @if($order->notes)
+                    <div class="order-notes" style="margin-top:1rem; padding:1rem; background:#f8f9fb; border-radius:0.5rem; border:1px solid #e9ecf0;">
+                        <strong>{{ __('messages.order_notes') }}:</strong>
+                        <p style="margin-top:0.25rem;">{{ $order->notes }}</p>
+                    </div>
+                @endif
             </div>
 
             {{-- Addresses --}}
@@ -84,10 +106,14 @@
                             @if($order->shippingAddress->address_line2)
                                 {{ $order->shippingAddress->address_line2 }}<br>
                             @endif
-                            {{ $order->shippingAddress->city }},
-                            {{ $order->shippingAddress->state ?? '' }}
-                            {{ $order->shippingAddress->postal_code ?? '' }}<br>
-                            {{ $order->shippingAddress->country }}
+                            {{ $order->shippingAddress->city }}
+                            @if($order->shippingAddress->state)
+                                , {{ $order->shippingAddress->state }}
+                            @endif
+                            @if($order->shippingAddress->postal_code)
+                                {{ $order->shippingAddress->postal_code }}
+                            @endif
+                            <br>{{ $order->shippingAddress->country }}
                         </p>
                     @else
                         <p class="text-muted">{{ __('messages.no_shipping_address') }}</p>
@@ -96,16 +122,20 @@
 
                 <div class="address-card">
                     <h3>{{ __('messages.billing_address') }}</h3>
-                    @if($order->billingAddress)
+                    @if($order->billingAddress && $order->billing_address_id !== $order->shipping_address_id)
                         <p>
                             {{ $order->billingAddress->address_line1 }}<br>
                             @if($order->billingAddress->address_line2)
                                 {{ $order->billingAddress->address_line2 }}<br>
                             @endif
-                            {{ $order->billingAddress->city }},
-                            {{ $order->billingAddress->state ?? '' }}
-                            {{ $order->billingAddress->postal_code ?? '' }}<br>
-                            {{ $order->billingAddress->country }}
+                            {{ $order->billingAddress->city }}
+                            @if($order->billingAddress->state)
+                                , {{ $order->billingAddress->state }}
+                            @endif
+                            @if($order->billingAddress->postal_code)
+                                {{ $order->billingAddress->postal_code }}
+                            @endif
+                            <br>{{ $order->billingAddress->country }}
                         </p>
                     @else
                         <p class="text-muted">{{ __('messages.billing_address_same_as_shipping') }}</p>
@@ -115,12 +145,20 @@
 
             {{-- Actions --}}
             <div class="actions">
-                <a href="{{ route('home') }}" class="btn-primary">{{ __('messages.continue_shopping') }}</a>
+                <a href="{{ route('home') }}" class="btn-primary">
+                    {{ __('messages.continue_shopping') }}
+                </a>
+                @auth
+                    <a href="{{ route('orders.index') }}" class="btn-secondary" style="margin-left:0.5rem;">
+                        {{ __('messages.view_all_orders') }}
+                    </a>
+                @endauth
             </div>
         </div>
 
     </div>
 </div>
+
 
 <style>
     /* (keep the existing CSS as is – unchanged) */
