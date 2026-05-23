@@ -19,9 +19,15 @@ sleep 3
 echo "=== FPM check ==="
 ss -tlnp | grep 9000 || echo "FPM NOT LISTENING"
 
+echo "=== Kill any existing nginx ==="
+pkill nginx || true
+sleep 1
+
 echo "=== Nginx config test ==="
 nginx -t 2>&1
 
 echo "=== Starting Nginx ==="
 nginx -g 'daemon off;' 2>&1
-echo "=== Nginx exited with code $? ==="
+echo "=== Nginx exited: $? ==="
+
+sleep infinity
