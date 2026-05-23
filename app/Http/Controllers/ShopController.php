@@ -90,6 +90,6 @@ class ShopController extends Controller
             ]);
         }
 
-        return view('shop', compact('products', 'categories'));
+        return view('Shop', compact('products', 'categories'));
     }
 }
