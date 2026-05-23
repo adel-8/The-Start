@@ -3,6 +3,7 @@ FROM php:8.2-fpm
 RUN apt-get update && apt-get install -y \
     nginx gettext-base curl net-tools \
     libpng-dev libonig-dev libxml2-dev zip unzip libzip-dev libicu-dev \
+    nodejs npm \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl xml
 
 RUN echo "[www]" > /usr/local/etc/php-fpm.d/www.conf && \
@@ -23,7 +24,9 @@ COPY . .
 RUN composer install --no-dev --optimize-autoloader --no-scripts && \
     php artisan package:discover --ansi || true
 
-# Own everything by www-data including public files
+# Build frontend assets
+RUN npm install && npm run build
+
 RUN chown -R www-data:www-data /var/www && \
     chmod -R 755 /var/www && \
     chmod -R 775 /var/www/storage /var/www/bootstrap/cache
