@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y \
     nodejs npm \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl xml
 
-RUN printf '[www]\nuser = www-data\ngroup = www-data\nlisten = 127.0.0.1:9000\npm = dynamic\npm.max_children = 5\npm.start_servers = 2\npm.min_spare_servers = 1\npm.max_spare_servers = 3\n' > /usr/local/etc/php-fpm.d/www.conf
+COPY docker/www.conf /usr/local/etc/php-fpm.d/www.conf
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
