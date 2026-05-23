@@ -258,3 +258,14 @@ Route::get('/terms', [App\Http\Controllers\PageController::class, 'terms'])->nam
 Route::get('/privacy', [App\Http\Controllers\PageController::class, 'privacy'])->name('privacy');
 Route::get('/return-policy', [App\Http\Controllers\PageController::class, 'returnPolicy'])->name('return.policy');
 Route::get('/shipping-policy', [App\Http\Controllers\PageController::class, 'shippingPolicy'])->name('shipping.policy');
+
+
+
+// ─── ADD THIS ROUTE to web.php in the Checkout section ───
+// Place it right after the existing checkout routes:
+
+Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
+Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:5,1')->name('checkout.store');
+
+// FIX: Add this new success route
+Route::get('/checkout/success/{orderNumber}', [CheckoutController::class, 'success'])->name('checkout.success');
