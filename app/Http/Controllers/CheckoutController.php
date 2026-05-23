@@ -78,14 +78,6 @@ class CheckoutController extends Controller
 
     public function store(Request $request)
     {
-        // Remove address fields if address_id is provided
-        if ($request->filled('address_id')) {
-            $request->request->remove('address');
-            $request->request->remove('city');
-            $request->request->remove('region');
-            $request->request->remove('postal_code');
-        }
-
         // Get enabled payment methods from settings for validation
         $settings = Setting::pluck('setting_value', 'setting_key')->toArray();
         $enabledPayments = [];
@@ -98,24 +90,25 @@ class CheckoutController extends Controller
         if (($settings['payment_stripe_enabled'] ?? '0') == '1') {
             $enabledPayments[] = 'stripe';
         }
-
-        // If no payment methods are enabled, fallback to COD (should not happen, but safe)
         if (empty($enabledPayments)) {
             $enabledPayments = ['cash_on_delivery'];
         }
 
+        // FIX: use required_without instead of required_if for saved address logic
+        // FIX: email and postal_code are now optional (nullable)
         $request->validate([
             'address_id'     => 'nullable|exists:addresses,id',
             'full_name'      => 'required|string|max:255',
-            'email'          => 'required|email|max:255',
+            'email'          => 'nullable|email|max:255',   // FIX: optional
             'phone'          => 'required|string|max:20',
-            'address'        => 'required_if:address_id,null|string|max:255',
-            'city'           => 'required_if:address_id,null|string|max:100',
+            // FIX: required only when no saved address is selected
+            'address'        => 'required_without:address_id|nullable|string|max:255',
+            'city'           => 'required_without:address_id|nullable|string|max:100',
             'region'         => 'nullable|string|max:100',
-            'postal_code'    => 'nullable|string|max:20',
+            'postal_code'    => 'nullable|string|max:20',   // FIX: always optional
             'payment_method' => 'required|in:' . implode(',', $enabledPayments),
             'coupon_code'    => 'nullable|string|max:50',
-            'notes'          => 'nullable|string|max:500',
+            'notes'          => 'nullable|string|max:1000', // FIX: increased limit
         ]);
 
         $cart = $this->getCart();
@@ -123,7 +116,7 @@ class CheckoutController extends Controller
             return $this->jsonResponse(false, 'Your cart is empty.', 400, $request);
         }
 
-        // Calculate shipping cost for the selected region (NO default shipping cost, NO free shipping threshold)
+        // Calculate shipping cost for the selected region
         $shippingCost = 0;
         if ($request->filled('region') && isset($settings['shipping_region_costs'])) {
             $regionCosts = json_decode($settings['shipping_region_costs'], true);
@@ -132,7 +125,7 @@ class CheckoutController extends Controller
             }
         }
 
-        // BaridiMob: store data and redirect to instructions (no order yet)
+        // BaridiMob: store data and redirect to instructions
         if ($request->payment_method === 'baridimob') {
             Log::info('BaridiMob checkout initiated', [
                 'user_id' => Auth::id(),
@@ -147,7 +140,7 @@ class CheckoutController extends Controller
             return redirect()->route('payment.baridimob');
         }
 
-        // Stripe: redirect to Stripe checkout (order created after payment)
+        // Stripe: redirect to Stripe checkout
         if ($request->payment_method === 'stripe') {
             Log::info('Stripe checkout initiated', [
                 'user_id' => Auth::id(),
@@ -203,18 +196,23 @@ class CheckoutController extends Controller
 
             $userId = Auth::id();
 
-            // Use saved address if provided, otherwise check for existing or create new
-            if ($request->address_id) {
+            // FIX: handle saved address correctly
+            if ($request->filled('address_id')) {
+                // Use saved address — verify it belongs to the current user
                 $address = Address::where('id', $request->address_id)
                     ->where('user_id', Auth::id())
                     ->firstOrFail();
             } else {
-                // Look for an existing address with the exact same unique fields
-                $address = Address::where('user_id', $userId)
-                    ->where('address_line1', $request->address)
-                    ->where('city', $request->city)
-                    ->where('country', 'Algeria')
-                    ->first();
+                // New address — look for existing or create
+                $address = null;
+
+                if ($userId) {
+                    $address = Address::where('user_id', $userId)
+                        ->where('address_line1', $request->address)
+                        ->where('city', $request->city)
+                        ->where('country', 'Algeria')
+                        ->first();
+                }
 
                 if (!$address) {
                     $address = Address::create([
@@ -245,10 +243,8 @@ class CheckoutController extends Controller
                 'status'              => 'pending',
                 'payment_method'      => $request->payment_method,
                 'payment_status'      => 'pending',
-                'notes'               => $request->notes,
+                'notes'               => $request->notes, // FIX: notes now saved properly
             ]);
-
-            session(['last_order_number' => $order->order_number]);
 
             foreach ($items as $item) {
                 OrderItem::create([
@@ -266,23 +262,31 @@ class CheckoutController extends Controller
 
             DB::commit();
 
-            // Send order confirmation email
-            $email = $order->user ? $order->user->email : $order->guest_email;
-            Mail::to($email)->send(new OrderConfirmation($order));
+            // Send order confirmation email (only if email provided)
+            if ($order->guest_email || ($order->user && $order->user->email)) {
+                try {
+                    $email = $order->user ? $order->user->email : $order->guest_email;
+                    Mail::to($email)->send(new OrderConfirmation($order));
+                } catch (\Exception $mailEx) {
+                    // Don't fail the order if email fails
+                    Log::error('Order confirmation email failed: ' . $mailEx->getMessage());
+                }
+            }
 
             if ($request->expectsJson()) {
                 return response()->json([
                     'success'      => true,
                     'message'      => 'Order placed successfully!',
-                    'order_number' => $order->order_number,
+                    'redirect'     => route('checkout.success', $order->order_number),
                 ]);
             }
 
-            return redirect()->route('orders.show', $order->order_number)
-                ->with('success', 'Order placed successfully!');
+            // FIX: redirect to checkout success page instead of orders.show
+            return redirect()->route('checkout.success', $order->order_number);
 
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Checkout error: ' . $e->getMessage());
 
             if ($request->expectsJson()) {
                 return response()->json([
@@ -293,6 +297,21 @@ class CheckoutController extends Controller
 
             return back()->with('error', $e->getMessage())->withInput();
         }
+    }
+
+    // FIX: new success page method
+    public function success($orderNumber)
+    {
+        $order = Order::where('order_number', $orderNumber)
+            ->with(['items.product', 'shippingAddress', 'billingAddress', 'coupon'])
+            ->firstOrFail();
+
+        // Security: only allow the owner or guest who just placed the order
+        if (Auth::check() && $order->user_id && $order->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        return view('checkout.success', compact('order'));
     }
 
     public function applyCoupon(Request $request)

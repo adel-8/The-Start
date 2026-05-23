@@ -3,13 +3,14 @@
 @section('title', __('admin.categories'))
 
 @section('content')
+
 <div class="categories-header">
     <h1>{{ __('admin.categories') }}</h1>
-    <div>
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
         <a href="{{ route('admin.categories.create') }}" class="btn-primary">
             <i class="fas fa-plus"></i> {{ __('admin.add_category') }}
         </a>
-        <button type="button" id="bulkDeleteBtn" class="btn-danger btn-sm" disabled>
+        <button type="button" id="bulkDeleteBtn" class="btn-sm btn-delete" disabled>
             <i class="fas fa-trash"></i> {{ __('admin.delete_selected') }}
         </button>
     </div>
@@ -26,7 +27,10 @@
 <div class="categories-filters">
     <form method="GET" action="{{ route('admin.categories.index') }}" class="filter-form">
         <div class="filter-group">
-            <input type="text" name="search" placeholder="{{ __('admin.search_categories') }}" value="{{ request('search') }}">
+            <input type="text"
+                   name="search"
+                   placeholder="{{ __('admin.search_categories') }}"
+                   value="{{ request('search') }}">
         </div>
         <div class="filter-group">
             <select name="status">
@@ -44,23 +48,102 @@
 <form id="bulkForm" method="POST" action="{{ route('admin.categories.bulk-delete') }}">
     @csrf
     @method('DELETE')
+
     <div class="table-responsive">
         <table class="admin-table">
             <thead>
-                  <!-- ... headers ... -->
+                <tr>
+                    <th style="width:40px;">
+                        <input type="checkbox" id="selectAll" title="{{ __('admin.select_all') }}">
+                    </th>
+                    <th>{{ __('admin.id') }}</th>
+                    <th>{{ __('admin.image') }}</th>
+                    <th>{{ __('admin.name') }}</th>
+                    <th>{{ __('admin.slug') }}</th>
+                    <th>{{ __('admin.parent') }}</th>
+                    <th>{{ __('admin.products_count') }}</th>
+                    <th>{{ __('admin.status') }}</th>
+                    <th>{{ __('admin.position') }}</th>
+                    <th>{{ __('admin.actions') }}</th>
+                </tr>
             </thead>
             <tbody>
                 @forelse($categories as $category)
-                 <!-- ... table row content ... -->
+                <tr>
+                    <td>
+                        <input type="checkbox"
+                               name="ids[]"
+                               value="{{ $category->id }}"
+                               class="category-checkbox">
+                    </td>
+                    <td>{{ $category->id }}</td>
+                    <td>
+                        @if($category->image)
+                            <img src="{{ asset('storage/' . $category->image) }}"
+                                 alt="{{ $category->name }}"
+                                 style="width:40px; height:40px; object-fit:cover; border-radius:0.5rem;">
+                        @else
+                            <div style="width:40px; height:40px; background:var(--color-border); border-radius:0.5rem; display:flex; align-items:center; justify-content:center;">
+                                <i class="fas fa-image" style="color:var(--color-muted); font-size:0.8rem;"></i>
+                            </div>
+                        @endif
+                    </td>
+                    <td>
+                        @if($category->parent_id)
+                            <span class="indent">↳ </span>
+                        @endif
+                        {{ $category->name }}
+                    </td>
+                    <td style="color:var(--color-muted); font-size:0.85rem;">{{ $category->slug }}</td>
+                    <td>{{ $category->parent->name ?? '—' }}</td>
+                    <td style="text-align:center;">
+                        {{ $category->products_count ?? $category->products()->count() }}
+                    </td>
+                    <td>
+                        @if($category->is_active ?? $category->status)
+                            <span class="badge status-active">{{ __('admin.active') }}</span>
+                        @else
+                            <span class="badge status-inactive">{{ __('admin.inactive') }}</span>
+                        @endif
+                    </td>
+                    <td>
+                        <div class="position-controls">
+                            <a href="{{ route('admin.categories.move', ['category' => $category->id, 'direction' => 'up']) }}"
+                               class="btn-sm btn-icon" title="{{ __('admin.move_up') }}">
+                                <i class="fas fa-arrow-up"></i>
+                            </a>
+                            <a href="{{ route('admin.categories.move', ['category' => $category->id, 'direction' => 'down']) }}"
+                               class="btn-sm btn-icon" title="{{ __('admin.move_down') }}">
+                                <i class="fas fa-arrow-down"></i>
+                            </a>
+                        </div>
+                    </td>
+                    <td style="white-space:nowrap;">
+                        <a href="{{ route('admin.categories.edit', $category) }}"
+                           class="btn-sm btn-edit">
+                            <i class="fas fa-edit"></i> {{ __('admin.edit') }}
+                        </a>
+                        <button type="button"
+                                class="btn-sm btn-delete delete-single-btn"
+                                data-id="{{ $category->id }}"
+                                data-name="{{ $category->name }}">
+                            <i class="fas fa-trash"></i> {{ __('admin.delete') }}
+                        </button>
+                    </td>
+                </tr>
                 @empty
-                 <!-- ... empty row ... -->
+                <tr>
+                    <td colspan="10" style="text-align:center; padding:2rem; color:var(--color-muted);">
+                        {{ __('admin.no_categories') }}
+                    </td>
+                </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 </form>
 
-<div class="pagination-container">
+<div style="margin-top:1.5rem;">
     {{ $categories->appends(request()->query())->links() }}
 </div>
 
@@ -69,6 +152,7 @@
     @csrf
     @method('DELETE')
 </form>
+
 @endsection
 
 @push('styles')
@@ -99,20 +183,26 @@
         flex-direction: column;
         gap: 0.25rem;
     }
-    .filter-group input, .filter-group select {
+    .filter-group input,
+    .filter-group select {
         padding: 0.5rem 0.75rem;
         border: 1px solid var(--color-border);
         border-radius: 0.5rem;
         background: var(--color-surface);
         min-width: 180px;
+        font-size: 0.9rem;
     }
     .table-responsive {
+        width: 100%;
         overflow-x: auto;
-        margin-bottom: 1.5rem;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 1rem;
+        border: 1px solid var(--color-border);
     }
     .admin-table {
-        min-width: 800px;
+        min-width: 900px;
         width: 100%;
+        border: none;
     }
     .indent {
         display: inline-block;
@@ -124,52 +214,74 @@
         display: flex;
         gap: 0.25rem;
     }
-    .btn-sm {
-        padding: 0.25rem 0.6rem;
-        font-size: 0.75rem;
-        border-radius: 0.5rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.3rem;
-        text-decoration: none;
-        cursor: pointer;
-        border: none;
-    }
     .btn-icon {
         background: var(--color-surface);
         border: 1px solid var(--color-border);
         color: var(--color-text);
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.4rem;
+        font-size: 0.75rem;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
     }
     .btn-icon:hover {
         background: var(--color-primary);
         color: white;
+        border-color: var(--color-primary);
     }
     .btn-edit {
         background: var(--color-info);
         color: white;
+        padding: 0.25rem 0.6rem;
+        border-radius: 0.4rem;
+        font-size: 0.75rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
     }
     .btn-delete {
         background: var(--color-danger);
         color: white;
+        border: none;
+        cursor: pointer;
+        padding: 0.25rem 0.6rem;
+        border-radius: 0.4rem;
+        font-size: 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
     }
     .status-active {
         background: rgba(16,185,129,0.1);
         color: #10B981;
+        padding: 0.2rem 0.6rem;
+        border-radius: 40px;
+        font-size: 0.7rem;
+        font-weight: 600;
     }
     .status-inactive {
         background: rgba(239,68,68,0.1);
         color: #EF4444;
-    }
-    .text-center {
-        text-align: center;
+        padding: 0.2rem 0.6rem;
+        border-radius: 40px;
+        font-size: 0.7rem;
+        font-weight: 600;
     }
     @media (max-width: 768px) {
         .filter-form {
             flex-direction: column;
             align-items: stretch;
         }
-        .filter-group input, .filter-group select {
+        .filter-group input,
+        .filter-group select {
             width: 100%;
+            min-width: unset;
+        }
+        .categories-header h1 {
+            font-size: 1.2rem;
         }
     }
 </style>
@@ -194,6 +306,7 @@
             updateBulkButton();
         });
     }
+
     checkboxes.forEach(cb => cb.addEventListener('change', updateBulkButton));
 
     // Bulk delete confirmation
@@ -210,7 +323,6 @@
     // Single delete confirmation
     const deleteBtns = document.querySelectorAll('.delete-single-btn');
     const singleDeleteForm = document.getElementById('singleDeleteForm');
-    // Build a base URL with a placeholder
     const baseDeleteUrl = "{{ route('admin.categories.destroy', ['category' => '__id__']) }}";
 
     deleteBtns.forEach(btn => {
