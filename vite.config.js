@@ -5,7 +5,21 @@ export default defineConfig({
     plugins: [
         laravel({
             input: [
+                'resources/css/global.css',
+                'resources/css/about.css',
+                'resources/css/addresses.css',
+                'resources/css/admin.css',
                 'resources/css/app.css',
+                'resources/css/cart.css',
+                'resources/css/checkout.css',
+                'resources/css/contact.css',
+                'resources/css/footer.css',
+                'resources/css/home.css',
+                'resources/css/product.css',
+                'resources/css/Shop.css',
+                'resources/css/signIn.css',   // typo variant if exists
+                'resources/css/signUp.css',
+                'resources/css/style.css',
                
             
                 //'resources/js/admin-analytics.js',
@@ -26,6 +40,7 @@ export default defineConfig({
             refresh: true,
         }),
     ],
+
     server: {
         watch: {
             ignored: ['**/storage/framework/views/**'],
