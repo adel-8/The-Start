@@ -23,7 +23,7 @@ php-fpm -D
 sleep 3
 
 echo "=== Checking if FPM is listening ==="
-netstat -tlnp 2>/dev/null || ss -tlnp
+ss -tlnp
 
 echo "=== Starting nginx ==="
 nginx -t && nginx -g 'daemon off;'
