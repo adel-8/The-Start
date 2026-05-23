@@ -13,12 +13,17 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-# Start FPM with allow-to-run-as-root flag
+# Fix permissions for all app files
+chmod -R 755 /var/www/public
+
+# Start FPM
 php-fpm --allow-to-run-as-root -D
 sleep 3
 
-echo "=== Checking FPM ==="
 ss -tlnp
 
-echo "=== Starting nginx ==="
+# Test a direct PHP-FPM connection
+echo "=== Testing FPM connection ==="
+curl -v http://127.0.0.1:9000 2>&1 | head -20
+
 nginx -t && nginx -g 'daemon off;'
