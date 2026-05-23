@@ -526,4 +526,6 @@ return [
     'btn_add' => 'Add',
     'all' => 'All',
     'settings_updated' => 'Settings updated successfully.',
+    'payment_method_cash_on_delivery' => 'Cash on Delivery',
+    'payment_method_baridimob' => 'BaridiMob',
 ];
