@@ -6,10 +6,6 @@ echo "=== PORT is: $PORT ==="
 sed -i "s/\${PORT}/$PORT/g" /etc/nginx/nginx.conf.template
 cp /etc/nginx/nginx.conf.template /etc/nginx/nginx.conf
 
-echo "=== Checking index.php exists and is readable ==="
-ls -la /var/www/public/index.php
-cat /var/www/public/index.php | head -5
-
 php artisan config:clear || true
 php artisan migrate --force
 php artisan storage:link --force || true
@@ -22,4 +18,14 @@ sleep 3
 
 ss -tlnp
 
-nginx -t && nginx -g 'daemon off;'
+nginx -t && nginx -g 'daemon off;' &
+sleep 5
+
+echo "=== Making test request ==="
+curl -v http://127.0.0.1:$PORT 2>&1
+
+echo "=== Nginx error log ==="
+cat /var/log/nginx/error.log
+
+# Keep container alive
+tail -f /var/log/nginx/error.log
