@@ -19,6 +19,7 @@ export default defineConfig({
                 'resources/css/Shop.css',
                 'resources/css/signIn.css',   // typo variant if exists
                 'resources/css/signUp.css',
+                'resources/css/signin.css', 
                 'resources/css/style.css',
                
             
