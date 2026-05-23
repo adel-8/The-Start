@@ -5,7 +5,6 @@ RUN apt-get update && apt-get install -y \
     libpng-dev libonig-dev libxml2-dev zip unzip libzip-dev libicu-dev \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl xml
 
-# PHP-FPM config: run as root, listen on 127.0.0.1:9000
 RUN echo "[www]" > /usr/local/etc/php-fpm.d/www.conf && \
     echo "user = www-data" >> /usr/local/etc/php-fpm.d/www.conf && \
     echo "group = www-data" >> /usr/local/etc/php-fpm.d/www.conf && \
@@ -24,7 +23,9 @@ COPY . .
 RUN composer install --no-dev --optimize-autoloader --no-scripts && \
     php artisan package:discover --ansi || true
 
-RUN chown -R root:root /var/www/storage /var/www/bootstrap/cache && \
+# Own everything by www-data including public files
+RUN chown -R www-data:www-data /var/www && \
+    chmod -R 755 /var/www && \
     chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
 COPY docker/start.sh /start.sh
