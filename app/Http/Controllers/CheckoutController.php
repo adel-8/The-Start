@@ -278,12 +278,14 @@ class CheckoutController extends Controller
                 return response()->json([
                     'success'      => true,
                     'message'      => 'Order placed successfully!',
-                    'redirect'     => route('checkout.success', $order->order_number),
+                    'redirect'     => route('orders.show', $order->order_number),
+                    'order_number' => $order->order_number,
                 ]);
             }
 
-            // FIX: redirect to checkout success page instead of orders.show
-            return redirect()->route('checkout.success', $order->order_number);
+            
+            return redirect()->route('orders.show', $order->order_number)
+                 ->with('success', __('messages.order_placed_successfully'));
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -300,20 +302,7 @@ class CheckoutController extends Controller
         }
     }
 
-    // FIX: new success page method
-    public function success($orderNumber)
-    {
-        $order = Order::where('order_number', $orderNumber)
-            ->with(['items.product', 'shippingAddress', 'billingAddress', 'coupon'])
-            ->firstOrFail();
-
-        // Security: only allow the owner or guest who just placed the order
-        if (Auth::check() && $order->user_id && $order->user_id !== Auth::id()) {
-            abort(403);
-        }
-
-        return view('checkout.success', compact('order'));
-    }
+    
 
     public function applyCoupon(Request $request)
     {
