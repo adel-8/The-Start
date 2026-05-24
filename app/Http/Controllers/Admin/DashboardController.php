@@ -203,7 +203,7 @@ class DashboardController extends Controller
         $netProfit = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->whereIn('orders.status', self::ACTIVE_STATUSES)
-            ->sum(DB::raw('(order_items.price_at_purchase - products.buy_for) * order_items.quantity'));
+            ->sum(DB::raw('(order_items.price_at_purchase - products.buy_price) * order_items.quantity'));
 
         // Average order value (based on active orders only)
         $averageOrderValue = $totalOrders ? $totalRevenue / $totalOrders : 0;
@@ -243,12 +243,12 @@ class DashboardController extends Controller
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->whereIn('orders.status', self::ACTIVE_STATUSES)
             ->whereBetween('orders.created_at', [$thisWeekStart, $thisWeekEnd])
-            ->sum(DB::raw('(order_items.price_at_purchase - products.buy_for) * order_items.quantity'));
+            ->sum(DB::raw('(order_items.price_at_purchase - products.buy_price) * order_items.quantity'));
         $lastWeekProfit = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->whereIn('orders.status', self::ACTIVE_STATUSES)
             ->whereBetween('orders.created_at', [$lastWeekStart, $lastWeekEnd])
-            ->sum(DB::raw('(order_items.price_at_purchase - products.buy_for) * order_items.quantity'));
+            ->sum(DB::raw('(order_items.price_at_purchase - products.buy_price) * order_items.quantity'));
 
         $thisWeekCustomers = User::whereBetween('created_at', [$thisWeekStart, $thisWeekEnd])->count();
         $lastWeekCustomers = User::whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])->count();
