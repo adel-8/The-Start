@@ -2,26 +2,28 @@
     @php $stock = $product->stock ?? 0; @endphp
 
     {{-- Image wrapper with badges overlay (scoped to product-card) --}}
-    <div class="product-card__image-wrapper">
-        <div class="product-img">
-            @if($product->image_url)
-                <img src="{{ asset($product->image_url) }}" alt="{{ $product->name }}">
-            @else
-                <i class="fa-solid fa-shirt"></i>
-            @endif
+    <a href="{{ route('product.show', $product->slug) }}" class="product-card__image-link">
+        <div class="product-card__image-wrapper">
+            <div class="product-img">
+                @if($product->image_url)
+                    <img src="{{ asset($product->image_url) }}" alt="{{ $product->name }}">
+                @else
+                    <i class="fa-solid fa-shirt"></i>
+                @endif
+            </div>
+            <div class="product-card__badges">
+                @if($product->is_new)
+                    <span class="badge badge-new">{{ __('messages.new') }}</span>
+                @endif
+                @if($product->bestseller)
+                    <span class="badge badge-bestseller">{{ __('messages.best_seller') }}</span>
+                @endif
+                @if($stock <= 0)
+                    <span class="badge badge-danger">{{ __('messages.out_of_stock') }}</span>
+                @endif
+            </div>
         </div>
-        <div class="product-card__badges">
-            @if($product->is_new)
-                <span class="badge badge-new">{{ __('messages.new') }}</span>
-            @endif
-            @if($product->bestseller)
-                <span class="badge badge-bestseller">{{ __('messages.best_seller') }}</span>
-            @endif
-            @if($stock <= 0)
-                <span class="badge badge-danger">{{ __('messages.out_of_stock') }}</span>
-            @endif
-        </div>
-    </div>
+    </a>
 
     {{-- Product info (rating now inside) --}}
     <div class="product-info">
@@ -39,7 +41,10 @@
             </div>
         @endif
 
-        <h3 class="product-name">{{ $product->name }}</h3>
+        <a href="{{ route('product.show', $product->slug) }}" class="product-name-link">
+            <h3 class="product-name">{{ $product->name }}</h3>
+        </a>
+
         <div class="product-price">{{ format_currency($product->price) }}</div>
 
         <div class="product-actions">
