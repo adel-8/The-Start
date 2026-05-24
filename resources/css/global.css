@@ -878,3 +878,52 @@ body[dir="rtl"] .close-menu {
     height: 30px;
     width: auto;
 }
+
+
+/* ============================================
+   TOAST NOTIFICATION (used on home, product, shop pages)
+   ============================================ */
+.toast-notify {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-primary, #645F7D);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 2rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    z-index: 9999;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    animation: toastSlideUp 0.3s ease;
+    max-width: 90vw;
+    text-align: center;
+}
+
+.toast-notify i {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+@keyframes toastSlideUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* RTL support */
+[dir="rtl"] .toast-notify {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+}
