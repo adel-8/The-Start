@@ -381,4 +381,5 @@ return [
     'commune_placeholder' => 'Enter your commune',
     'select_wilaya' => 'Select your wilaya',
     'order_notes_placeholder' => 'Any special instructions for your order? (optional)',
+    'full_name_placeholder' => 'John Doe',
 ];
