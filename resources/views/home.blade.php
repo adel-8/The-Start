@@ -2,7 +2,9 @@
 
 @section('title', $settings['home_page_title_' . app()->getLocale()] ?? $settings['home_page_title_en'] ?? __('messages.home_page_title'))
 
-<link rel="stylesheet" href="{{ asset('css/home.css') }}">
+@push('styles')
+    @vite('resources/css/home.css')
+@endpush
 @section('content')
 <div class="home-main">
     <div class="container">
