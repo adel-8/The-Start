@@ -384,5 +384,5 @@ return [
     'full_name_placeholder' => 'John Doe',
     'login_to_review' => 'Log in to write a review.',
     'new_image_preview' => 'New image preview',
-    'delivery_type'=>'Delivery Type',
+    
 ];
