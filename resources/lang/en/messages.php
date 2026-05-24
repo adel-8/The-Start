@@ -382,4 +382,5 @@ return [
     'select_wilaya' => 'Select your wilaya',
     'order_notes_placeholder' => 'Any special instructions for your order? (optional)',
     'full_name_placeholder' => 'John Doe',
+    'login_to_review' => 'Log in to write a review.',
 ];

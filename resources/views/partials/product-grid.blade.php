@@ -19,18 +19,22 @@
                     @endif
                 </div>
 
-                {{-- Image --}}
-                <div class="product-img">
-                    @if($product->image_url)
-                        <img src="{{ asset($product->image_url) }}" alt="{{ $product->name }}">
-                    @else
-                        <i class="fa-solid fa-shirt"></i>
-                    @endif
-                </div>
+                {{-- Image (clickable) --}}
+                <a href="{{ route('product.show', $product->slug) }}" class="product-img-link">
+                    <div class="product-img">
+                        @if($product->image_url)
+                            <img src="{{ asset($product->image_url) }}" alt="{{ $product->name }}">
+                        @else
+                            <i class="fa-solid fa-shirt"></i>
+                        @endif
+                    </div>
+                </a>
 
                 {{-- Info --}}
                 <div class="product-info">
-                    <h3 class="product-name">{{ $product->name }}</h3>
+                    <a href="{{ route('product.show', $product->slug) }}" class="product-name-link">
+                        <h3 class="product-name">{{ $product->name }}</h3>
+                    </a>
 
                     <div class="product-price">
                         {{ format_currency($product->price) }}

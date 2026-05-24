@@ -187,7 +187,9 @@
                         </div>
                     @endif
                 @else
-                    <p>{!! __('messages.login_to_review', ['link' => '<a href="'.route('signin').'">'.__('messages.login').'</a>']) !!}</p>
+                    <p class="login-to-review-message" style="color: #dc3545; font-weight: 500;">
+                        {!! __('messages.login_to_review', ['link' => '<a href="'.route('signin').'" style="color: #dc3545; text-decoration: underline;">'.__('messages.login').'</a>']) !!}
+                    </p>
                 @endauth
             </div>
         </div>
