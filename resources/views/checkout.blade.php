@@ -4,21 +4,6 @@
 
 @push('styles')
     @vite('resources/css/checkout.css')
-    <style>
-        /* ── Mobile: order-summary appears BEFORE billing ── */
-        @media (max-width: 768px) {
-            .checkout-layout {
-                display: flex !important;
-                flex-direction: column !important;
-            }
-            .order-summary {
-                order: -1 !important; /* show first on mobile */
-            }
-            .billing-section {
-                order: 1 !important;  /* show second on mobile */
-            }
-        }
-    </style>
 @endpush
 
 @section('content')
@@ -49,169 +34,12 @@
             @csrf
             <div class="checkout-layout">
 
-                {{-- ═══════════════════════════════════════
-                     BILLING SECTION
-                ═══════════════════════════════════════ --}}
-                <div class="billing-section">
-                    <h2>{{ __('messages.billing_details') }}</h2>
-
-                    @auth
-                        @if($addresses->count())
-                            <div class="address-selection">
-                                <label>{{ __('messages.select_saved_address') }}</label>
-                                <div class="address-dropdown-wrapper" id="addressDropdownWrapper">
-                                    <div class="dropdown-trigger" id="addressDropdownTrigger">
-                                        <span class="trigger-label">
-                                            @if($defaultAddress)
-                                                {{ $defaultAddress->address_line1 }}, {{ $defaultAddress->city }}
-                                            @else
-                                                {{ __('messages.new_address') }}
-                                            @endif
-                                        </span>
-                                        <i class="fas fa-chevron-down"></i>
-                                    </div>
-                                    <div class="dropdown-options" id="addressDropdownOptions">
-                                        <div class="dropdown-option" data-value="">{{ __('messages.new_address') }}</div>
-                                        @foreach($addresses as $addr)
-                                            <div class="dropdown-option"
-                                                 data-value="{{ $addr->id }}"
-                                                 data-address="{{ $addr->address_line1 }}"
-                                                 data-city="{{ $addr->city }}"
-                                                 data-region="{{ $addr->state }}"
-                                                 data-postal="{{ $addr->postal_code }}">
-                                                {{ $addr->address_line1 }}, {{ $addr->city }}
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                    <input type="hidden" name="address_id" id="addressIdInput"
-                                           value="{{ $defaultAddress ? $defaultAddress->id : '' }}">
-                                </div>
-                            </div>
-                        @endif
-                    @endauth
-
-                    {{-- Full Name --}}
-                    <div class="form-group">
-                        <label for="fullName">{{ __('messages.full_name') }} <span class="required">*</span></label>
-                        <input type="text" name="full_name" id="fullName"
-                               value="{{ old('full_name', auth()->check() ? auth()->user()->name : '') }}"
-                               required>
-                        @error('full_name') <span class="error-message">{{ $message }}</span> @enderror
-                    </div>
-
-                    {{-- Email — OPTIONAL --}}
-                    <div class="form-group">
-                        <label for="email">
-                            {{ __('messages.email_address') }}
-                            <span class="optional-label">({{ __('messages.optional') }})</span>
-                        </label>
-                        <input type="email" name="email" id="email"
-                               value="{{ old('email', auth()->check() ? auth()->user()->email : '') }}">
-                        @error('email') <span class="error-message">{{ $message }}</span> @enderror
-                    </div>
-
-                    {{-- Phone --}}
-                    <div class="form-group">
-                        <label for="phone">{{ __('messages.phone_number') }} <span class="required">*</span></label>
-                        <input type="tel" name="phone" id="phone"
-                               value="{{ old('phone', auth()->check() ? (auth()->user()->phone ?? '') : '') }}"
-                               required>
-                        @error('phone') <span class="error-message">{{ $message }}</span> @enderror
-                    </div>
-
-                    {{-- Address fields (hidden when saved address is selected) --}}
-                    <div id="addressFieldsWrapper">
-                        <div class="form-group">
-                            <label for="address">{{ __('messages.street_address') }} <span class="required">*</span></label>
-                            <input type="text" name="address" id="address"
-                                   value="{{ old('address') }}">
-                            @error('address') <span class="error-message">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="city">{{ __('messages.city') }} <span class="required">*</span></label>
-                                <input type="text" name="city" id="city"
-                                       value="{{ old('city') }}">
-                                @error('city') <span class="error-message">{{ $message }}</span> @enderror
-                            </div>
-                            <div class="form-group">
-                                <label for="region">{{ __('messages.region_state') }}</label>
-                                <select name="region" id="regionSelect">
-                                    <option value="">{{ __('messages.select_region') }}</option>
-                                    @foreach($regions as $region)
-                                        <option value="{{ $region }}" {{ old('region') == $region ? 'selected' : '' }}>
-                                            {{ $region }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('region') <span class="error-message">{{ $message }}</span> @enderror
-                            </div>
-                            {{-- Postal Code — OPTIONAL --}}
-                            <div class="form-group">
-                                <label for="postal_code">
-                                    {{ __('messages.postal_code') }}
-                                    <span class="optional-label">({{ __('messages.optional') }})</span>
-                                </label>
-                                <input type="text" name="postal_code" id="postal_code"
-                                       value="{{ old('postal_code') }}">
-                                @error('postal_code') <span class="error-message">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Payment Methods --}}
-                    <h2>{{ __('messages.payment_method') }}</h2>
-                    <div class="payment-methods">
-                        @if(empty($enabledPayments))
-                            <div class="alert alert-warning">{{ __('messages.no_payment_methods_available') }}</div>
-                        @else
-                            @foreach($enabledPayments as $method)
-                                @if($method === 'cash_on_delivery')
-                                    <label class="payment-option">
-                                        <input type="radio" name="payment_method" value="cash_on_delivery" {{ $loop->first ? 'checked' : '' }}>
-                                        <strong><i class="fas fa-money-bill-wave"></i> {{ __('messages.cash_on_delivery') }}</strong>
-                                        <p>{{ __('messages.cash_on_delivery_desc') }}</p>
-                                    </label>
-                                @elseif($method === 'baridimob')
-                                    <label class="payment-option">
-                                        <input type="radio" name="payment_method" value="baridimob" {{ $loop->first ? 'checked' : '' }}>
-                                        <strong><i class="fas fa-money-bill"></i> {{ __('messages.baridimob') }}</strong>
-                                        <p>{{ __('messages.baridimob_desc') }}</p>
-                                    </label>
-                                @elseif($method === 'stripe')
-                                    <label class="payment-option">
-                                        <input type="radio" name="payment_method" value="stripe" {{ $loop->first ? 'checked' : '' }}>
-                                        <strong><i class="fab fa-stripe"></i> {{ __('messages.stripe') }}</strong>
-                                        <p>{{ __('messages.stripe_desc') }}</p>
-                                    </label>
-                                @endif
-                            @endforeach
-                        @endif
-                    </div>
-
-                    {{-- Order Notes — FIX: was not submitting value properly --}}
-                    <div class="form-group">
-                        <label for="notes">
-                            {{ __('messages.order_notes') }}
-                            <span class="optional-label">({{ __('messages.optional') }})</span>
-                        </label>
-                        <textarea name="notes" id="notes" rows="3"
-                                  placeholder="{{ __('messages.order_notes_placeholder') ?? '' }}">{{ old('notes') }}</textarea>
-                        @error('notes') <span class="error-message">{{ $message }}</span> @enderror
-                    </div>
-
-                    <button type="submit" class="place-order-btn" id="placeOrderBtn">
-                        <i class="fas fa-check-circle"></i>
-                        <span class="btn-text">{{ __('messages.place_order') }}</span>
-                        <span class="btn-spinner" style="display:none;">{{ __('messages.processing') }}</span>
-                    </button>
-                </div>
-
-                {{-- ═══════════════════════════════════════
-                     ORDER SUMMARY (shown first on mobile via CSS order)
-                ═══════════════════════════════════════ --}}
+                {{-- ═══════════════════════════════════
+                     ORDER SUMMARY (top on mobile)
+                ═══════════════════════════════════ --}}
                 <div class="order-summary">
                     <h2>{{ __('messages.order_summary') }}</h2>
+
                     <div class="cart-items-list">
                         @php $subtotal = 0; @endphp
                         @foreach($cart as $id => $item)
@@ -254,14 +82,266 @@
                     </div>
 
                     <div class="coupon-section">
-                        <input type="text" id="couponCode" name="coupon_code"
+                        <input type="text"
+                               id="couponCode"
+                               name="coupon_code"
                                placeholder="{{ __('messages.coupon_code_placeholder') }}"
                                value="{{ old('coupon_code') }}">
                         <button type="button" id="applyCouponBtn">{{ __('messages.apply_coupon') }}</button>
                     </div>
                 </div>
 
-            </div>
+                {{-- ═══════════════════════════════════
+                     BILLING SECTION
+                ═══════════════════════════════════ --}}
+                <div class="billing-section">
+                    <h2>{{ __('messages.billing_details') }}</h2>
+
+                    {{-- ── 1. Saved address dropdown (auth only) ── --}}
+                    @auth
+                        @if($addresses->count())
+                            <div class="form-group">
+                                <label>{{ __('messages.select_saved_address') }}</label>
+                                <div class="address-dropdown-wrapper" id="addressDropdownWrapper">
+                                    <div class="dropdown-trigger" id="addressDropdownTrigger">
+                                        <span class="trigger-label">
+                                            @if($defaultAddress)
+                                                {{ $defaultAddress->address_line1 }}, {{ $defaultAddress->city }}
+                                            @else
+                                                {{ __('messages.new_address') }}
+                                            @endif
+                                        </span>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </div>
+                                    <div class="dropdown-options" id="addressDropdownOptions">
+                                        <div class="dropdown-option" data-value="">
+                                            {{ __('messages.new_address') }}
+                                        </div>
+                                        @foreach($addresses as $addr)
+                                            <div class="dropdown-option"
+                                                 data-value="{{ $addr->id }}"
+                                                 data-address="{{ $addr->address_line1 }}"
+                                                 data-city="{{ $addr->city }}"
+                                                 data-region="{{ $addr->state }}"
+                                                 data-postal="{{ $addr->postal_code }}">
+                                                {{ $addr->address_line1 }}, {{ $addr->city }}
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    <input type="hidden" name="address_id" id="addressIdInput"
+                                           value="{{ $defaultAddress ? $defaultAddress->id : '' }}">
+                                </div>
+                            </div>
+                        @endif
+                    @endauth
+
+                    {{-- ── 2. Full Name ── --}}
+                    <div class="form-group">
+                        <label for="fullName">
+                            {{ __('messages.full_name') }}
+                            <span class="required-star">*</span>
+                        </label>
+                        <input type="text"
+                               name="full_name"
+                               id="fullName"
+                               value="{{ old('full_name', auth()->check() ? auth()->user()->name : '') }}"
+                               placeholder="{{ __('messages.full_name_placeholder') ?? __('messages.full_name') }}"
+                               required>
+                        @error('full_name') <span class="error-message">{{ $message }}</span> @enderror
+                    </div>
+
+                    {{-- ── 3. Phone Number ── --}}
+                    <div class="form-group">
+                        <label for="phone">
+                            {{ __('messages.phone_number') }}
+                            <span class="required-star">*</span>
+                        </label>
+                        <input type="tel"
+                               name="phone"
+                               id="phone"
+                               value="{{ old('phone', auth()->check() ? (auth()->user()->phone ?? '') : '') }}"
+                               placeholder="07XXXXXXXX"
+                               required>
+                        @error('phone') <span class="error-message">{{ $message }}</span> @enderror
+                    </div>
+
+                    {{-- ── 4. Address fields (hidden when saved address selected) ── --}}
+                    <div id="addressFieldsWrapper">
+
+                        {{-- الولاية — Wilaya/Region --}}
+                        <div class="form-group">
+                            <label for="regionSelect">
+                                {{ __('messages.wilaya') ?? 'الولاية' }}
+                                <span class="required-star">*</span>
+                            </label>
+                            <select name="region" id="regionSelect" required>
+                                <option value="">{{ __('messages.select_wilaya') ?? 'اختر الولاية' }}</option>
+                                @foreach($regions as $region)
+                                    <option value="{{ $region }}"
+                                            {{ old('region') == $region ? 'selected' : '' }}>
+                                        {{ $region }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('region') <span class="error-message">{{ $message }}</span> @enderror
+                        </div>
+
+                        {{-- البلدية — City/Commune --}}
+                        <div class="form-group">
+                            <label for="city">
+                                {{ __('messages.commune') ?? 'البلدية' }}
+                                <span class="required-star">*</span>
+                            </label>
+                            <input type="text"
+                                   name="city"
+                                   id="city"
+                                   value="{{ old('city') }}"
+                                   placeholder="{{ __('messages.commune_placeholder') ?? 'البلدية' }}"
+                                   required>
+                            @error('city') <span class="error-message">{{ $message }}</span> @enderror
+                        </div>
+
+                        {{-- الشارع — Street Address --}}
+                        <div class="form-group">
+                            <label for="address">
+                                {{ __('messages.street_address') ?? 'الشارع' }}
+                                <span class="required-star">*</span>
+                            </label>
+                            <input type="text"
+                                   name="address"
+                                   id="address"
+                                   value="{{ old('address') }}"
+                                   placeholder="{{ __('messages.street_placeholder') ?? 'رقم وعنوان الشارع' }}"
+                                   required>
+                            @error('address') <span class="error-message">{{ $message }}</span> @enderror
+                        </div>
+
+                    </div>{{-- end #addressFieldsWrapper --}}
+
+                    {{-- ── 5. Email (optional) ── --}}
+                    <div class="form-group">
+                        <label for="email">
+                            {{ __('messages.email_address') }}
+                            <span class="optional-label">({{ __('messages.optional') ?? 'اختياري' }})</span>
+                        </label>
+                        <input type="email"
+                               name="email"
+                               id="email"
+                               value="{{ old('email', auth()->check() ? auth()->user()->email : '') }}"
+                               placeholder="example@email.com">
+                        @error('email') <span class="error-message">{{ $message }}</span> @enderror
+                    </div>
+
+                    {{-- ── 6. Delivery Type ── --}}
+                    <div class="form-group">
+                        <label>
+                            {{ __('messages.delivery_type') ?? 'نوع التوصيل' }}
+                            <span class="required-star">*</span>
+                        </label>
+                        <div class="delivery-options">
+                            <label class="delivery-option {{ old('delivery_type', 'home') == 'home' ? 'active' : '' }}">
+                                <input type="radio"
+                                       name="delivery_type"
+                                       value="home"
+                                       id="deliveryHome"
+                                       {{ old('delivery_type', 'home') == 'home' ? 'checked' : '' }}>
+                                <div class="delivery-option-content">
+                                    <i class="fas fa-home"></i>
+                                    <div>
+                                        <strong>{{ __('messages.delivery_home') ?? 'توصيل للمنزل' }}</strong>
+                                        <p>{{ __('messages.delivery_home_desc') ?? 'يصلك الطرد إلى باب منزلك' }}</p>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="delivery-option {{ old('delivery_type') == 'bureau' ? 'active' : '' }}">
+                                <input type="radio"
+                                       name="delivery_type"
+                                       value="bureau"
+                                       id="deliveryBureau"
+                                       {{ old('delivery_type') == 'bureau' ? 'checked' : '' }}>
+                                <div class="delivery-option-content">
+                                    <i class="fas fa-building"></i>
+                                    <div>
+                                        <strong>{{ __('messages.delivery_bureau') ?? 'استلام من المكتب' }}</strong>
+                                        <p>{{ __('messages.delivery_bureau_desc') ?? 'تستلم الطرد من أقرب مكتب بريد' }}</p>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        @error('delivery_type') <span class="error-message">{{ $message }}</span> @enderror
+                    </div>
+
+                    {{-- ── 7. Payment Method ── --}}
+                    <div class="form-group">
+                        <h2 class="section-subtitle">{{ __('messages.payment_method') }}</h2>
+                        <div class="payment-methods">
+                            @if(empty($enabledPayments))
+                                <div class="alert alert-warning">
+                                    {{ __('messages.no_payment_methods_available') }}
+                                </div>
+                            @else
+                                @foreach($enabledPayments as $method)
+                                    @if($method === 'cash_on_delivery')
+                                        <label class="payment-option">
+                                            <input type="radio" name="payment_method" value="cash_on_delivery"
+                                                   {{ $loop->first ? 'checked' : '' }}>
+                                            <strong>
+                                                <i class="fas fa-money-bill-wave"></i>
+                                                {{ __('messages.cash_on_delivery') }}
+                                            </strong>
+                                            <p>{{ __('messages.cash_on_delivery_desc') }}</p>
+                                        </label>
+                                    @elseif($method === 'baridimob')
+                                        <label class="payment-option">
+                                            <input type="radio" name="payment_method" value="baridimob"
+                                                   {{ $loop->first ? 'checked' : '' }}>
+                                            <strong>
+                                                <i class="fas fa-money-bill"></i>
+                                                {{ __('messages.baridimob') }}
+                                            </strong>
+                                            <p>{{ __('messages.baridimob_desc') }}</p>
+                                        </label>
+                                    @elseif($method === 'stripe')
+                                        <label class="payment-option">
+                                            <input type="radio" name="payment_method" value="stripe"
+                                                   {{ $loop->first ? 'checked' : '' }}>
+                                            <strong>
+                                                <i class="fab fa-stripe"></i>
+                                                {{ __('messages.stripe') }}
+                                            </strong>
+                                            <p>{{ __('messages.stripe_desc') }}</p>
+                                        </label>
+                                    @endif
+                                @endforeach
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- ── 8. Order Notes ── --}}
+                    <div class="form-group">
+                        <label for="notes">
+                            {{ __('messages.order_notes') }}
+                            <span class="optional-label">({{ __('messages.optional') ?? 'اختياري' }})</span>
+                        </label>
+                        <textarea name="notes"
+                                  id="notes"
+                                  rows="3"
+                                  placeholder="{{ __('messages.order_notes_placeholder') ?? 'ملاحظات إضافية حول طلبك...' }}">{{ old('notes') }}</textarea>
+                        @error('notes') <span class="error-message">{{ $message }}</span> @enderror
+                    </div>
+
+                    {{-- ── 9. Place Order Button ── --}}
+                    <button type="submit" class="place-order-btn" id="placeOrderBtn">
+                        <i class="fas fa-check-circle"></i>
+                        <span class="btn-text">{{ __('messages.place_order') }}</span>
+                        <span class="btn-spinner" style="display:none;">{{ __('messages.processing') }}</span>
+                    </button>
+
+                </div>{{-- end .billing-section --}}
+
+            </div>{{-- end .checkout-layout --}}
+            {{-- Pass region costs to JS --}}
+            <input type="hidden" id="regionCostsData" value="{{ json_encode($regionCosts ?? []) }}">
         </form>
     </div>
 </div>
@@ -270,97 +350,8 @@
     <i class="fas fa-check-circle"></i>
     <span id="toastText"></span>
 </div>
-
 @endsection
 
 @push('scripts')
     @vite('resources/js/checkout.js')
-    <script>
-    // ── Saved address dropdown logic ──
-    document.addEventListener('DOMContentLoaded', function () {
-        const trigger     = document.getElementById('addressDropdownTrigger');
-        const options     = document.getElementById('addressDropdownOptions');
-        const addressInput = document.getElementById('addressIdInput');
-        const fieldsWrapper = document.getElementById('addressFieldsWrapper');
-
-        if (!trigger) return;
-
-        // Toggle dropdown
-        trigger.addEventListener('click', function () {
-            options.classList.toggle('open');
-        });
-
-        // Close when clicking outside
-        document.addEventListener('click', function (e) {
-            if (!trigger.contains(e.target) && !options.contains(e.target)) {
-                options.classList.remove('open');
-            }
-        });
-
-        // Handle option selection
-        options.querySelectorAll('.dropdown-option').forEach(function (option) {
-            option.addEventListener('click', function () {
-                const value   = this.dataset.value;
-                const label   = this.textContent.trim();
-                const address = this.dataset.address || '';
-                const city    = this.dataset.city    || '';
-                const region  = this.dataset.region  || '';
-                const postal  = this.dataset.postal  || '';
-
-                // Update trigger label
-                trigger.querySelector('.trigger-label').textContent = label;
-                addressInput.value = value;
-                options.classList.remove('open');
-
-                if (value) {
-                    // Saved address selected — hide manual fields, remove required
-                    if (fieldsWrapper) {
-                        fieldsWrapper.style.display = 'none';
-                        fieldsWrapper.querySelectorAll('input, select').forEach(function (el) {
-                            el.removeAttribute('required');
-                        });
-                    }
-                } else {
-                    // New address — show manual fields
-                    if (fieldsWrapper) {
-                        fieldsWrapper.style.display = 'block';
-                        // Restore required on address and city
-                        const addressEl = document.getElementById('address');
-                        const cityEl    = document.getElementById('city');
-                        if (addressEl) addressEl.setAttribute('required', 'required');
-                        if (cityEl)    cityEl.setAttribute('required', 'required');
-                    }
-                    // Clear hidden inputs
-                    addressInput.value = '';
-                }
-
-                // Pre-fill fields if saved address
-                const addressEl = document.getElementById('address');
-                const cityEl    = document.getElementById('city');
-                const regionEl  = document.getElementById('regionSelect');
-                const postalEl  = document.getElementById('postal_code');
-                if (addressEl) addressEl.value = address;
-                if (cityEl)    cityEl.value    = city;
-                if (postalEl)  postalEl.value  = postal;
-                if (regionEl && region) {
-                    Array.from(regionEl.options).forEach(function (opt) {
-                        opt.selected = opt.value === region;
-                    });
-                    // Trigger change so shipping cost updates
-                    regionEl.dispatchEvent(new Event('change'));
-                }
-            });
-        });
-
-        // On load: if default address is selected, hide fields
-        if (addressInput && addressInput.value) {
-            if (fieldsWrapper) {
-                fieldsWrapper.style.display = 'none';
-                fieldsWrapper.querySelectorAll('input, select').forEach(function (el) {
-                    el.removeAttribute('required');
-                });
-            }
-        }
-    });
-    </script>
 @endpush
