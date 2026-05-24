@@ -263,18 +263,21 @@ class CheckoutController extends Controller
 
             DB::commit();
 
-            // Send order confirmation email (only if email provided)
+            // Send order confirmation email
             if ($order->guest_email || ($order->user && $order->user->email)) {
                 try {
                     $email = $order->user ? $order->user->email : $order->guest_email;
                     Mail::to($email)->send(new OrderConfirmation($order));
                 } catch (\Exception $mailEx) {
-                    // Don't fail the order if email fails
                     Log::error('Order confirmation email failed: ' . $mailEx->getMessage());
                 }
             }
 
-            if ($request->expectsJson()) {
+            // Store in session for guest access
+            session(['last_order_number' => $order->order_number]);
+
+            // Always return JSON — JS handles the redirect
+            if ($request->expectsJson() || $request->ajax()) {
                 return response()->json([
                     'success'      => true,
                     'message'      => 'Order placed successfully!',
@@ -283,9 +286,8 @@ class CheckoutController extends Controller
                 ]);
             }
 
-            
             return redirect()->route('orders.show', $order->order_number)
-                 ->with('success', __('messages.order_placed_successfully'));
+                ->with('success', __('messages.order_placed_successfully'));
 
         } catch (\Exception $e) {
             DB::rollBack();
