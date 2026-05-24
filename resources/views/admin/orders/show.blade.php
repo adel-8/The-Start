@@ -34,15 +34,15 @@
         <h3>{{ __('admin.customer_information') }}</h3>
         <p><strong>{{ __('admin.name') }}:</strong> {{ $order->user ? $order->user->name : $order->guest_name }}</p>
         <p><strong>{{ __('admin.email') }}:</strong> {{ $order->user ? $order->user->email : $order->guest_email }}</p>
-       <p><strong>{{ __('admin.phone') }}:</strong> 
-    @if($order->guest_phone)
-        {{ $order->guest_phone }}
-    @elseif($order->user && $order->user->phone)
-        {{ $order->user->phone }}
-    @else
-        {{ __('admin.not_provided') }}
-    @endif
-</p>
+        <p><strong>{{ __('admin.phone') }}:</strong> 
+            @if($order->guest_phone)
+                {{ $order->guest_phone }}
+            @elseif($order->user && $order->user->phone)
+                {{ $order->user->phone }}
+            @else
+                {{ __('admin.not_provided') }}
+            @endif
+        </p>
     </div>
 
     <!-- Shipping Address -->
@@ -62,6 +62,14 @@
             <p>{{ __('admin.no_address_provided') }}</p>
         @endif
     </div>
+
+    {{-- NEW: Order Notes --}}
+    @if($order->notes)
+        <div class="order-info-card">
+            <h3>{{ __('messages.order_notes') }}</h3>
+            <p>{{ $order->notes }}</p>
+        </div>
+    @endif
 
     <!-- Order Status Update Form -->
     <div class="order-info-card">
@@ -90,55 +98,51 @@
             </div>
 
             {{-- Payment Proof Display (works for all methods) --}}
-            {{-- In the form, after payment_status select --}}
-
-{{-- Payment Proof Display – show if any proof exists --}}
-@if($order->payment_proof)
-    <div class="form-group">
-        <label>{{ __('admin.payment_proof') }}</label>
-        <div class="payment-proof">
-            @php
-                // Build the correct asset URL (remove any leading slash)
-                $proofPath = ltrim($order->payment_proof, '/');
-                $proofUrl = asset('storage/' . $proofPath);
-                $ext = pathinfo($proofPath, PATHINFO_EXTENSION);
-                $isImage = in_array(strtolower($ext), ['jpg','jpeg','png','gif','webp']);
-            @endphp
-            @if($isImage)
-                <a href="{{ $proofUrl }}" target="_blank">
-                    <img src="{{ $proofUrl }}" class="proof-image" style="max-width:200px; max-height:200px;" alt="{{ __('admin.payment_proof') }}">
-                </a>
-            @else
-                <a href="{{ $proofUrl }}" target="_blank" class="btn-sm btn-primary">
-                    <i class="fas fa-file-pdf"></i> {{ __('admin.view_proof') }}
-                </a>
+            @if($order->payment_proof)
+                <div class="form-group">
+                    <label>{{ __('admin.payment_proof') }}</label>
+                    <div class="payment-proof">
+                        @php
+                            $proofPath = ltrim($order->payment_proof, '/');
+                            $proofUrl = asset('storage/' . $proofPath);
+                            $ext = pathinfo($proofPath, PATHINFO_EXTENSION);
+                            $isImage = in_array(strtolower($ext), ['jpg','jpeg','png','gif','webp']);
+                        @endphp
+                        @if($isImage)
+                            <a href="{{ $proofUrl }}" target="_blank">
+                                <img src="{{ $proofUrl }}" class="proof-image" style="max-width:200px; max-height:200px;" alt="{{ __('admin.payment_proof') }}">
+                            </a>
+                        @else
+                            <a href="{{ $proofUrl }}" target="_blank" class="btn-sm btn-primary">
+                                <i class="fas fa-file-pdf"></i> {{ __('admin.view_proof') }}
+                            </a>
+                        @endif
+                    </div>
+                </div>
             @endif
-        </div>
-    </div>
-@endif
 
-{{-- Optional: Accept/Reject buttons for BaridiMob (only if proof exists and payment is pending) --}}
-@if($order->payment_method == 'baridimob' && $order->payment_proof && $order->payment_status == 'pending')
-    <div class="form-group payment-actions">
-        <label>{{ __('admin.verify_payment') }}</label>
-        <div class="action-buttons">
-            <form action="{{ route('admin.orders.payment.update', $order) }}" method="POST" style="display: inline-block;">
-                @csrf
-                <input type="hidden" name="payment_status" value="paid">
-                <button type="submit" class="btn-sm btn-success" onclick="return confirm('{{ __('admin.confirm_accept_payment') }}')">
-                    <i class="fas fa-check"></i> {{ __('admin.accept_payment') }}
-                </button>
-            </form>
-            <form action="{{ route('admin.orders.payment.update', $order) }}" method="POST" style="display: inline-block;">
-                @csrf
-                <input type="hidden" name="payment_status" value="failed">
-                <button type="submit" class="btn-sm btn-danger" onclick="return confirm('{{ __('admin.confirm_reject_payment') }}')">
-                    <i class="fas fa-times"></i> {{ __('admin.reject_payment') }}
-                </button>
-            </form>
-        </div>
-    </div>
-@endif
+            {{-- Accept/Reject buttons for BaridiMob (only if proof exists and payment is pending) --}}
+            @if($order->payment_method == 'baridimob' && $order->payment_proof && $order->payment_status == 'pending')
+                <div class="form-group payment-actions">
+                    <label>{{ __('admin.verify_payment') }}</label>
+                    <div class="action-buttons">
+                        <form action="{{ route('admin.orders.payment.update', $order) }}" method="POST" style="display: inline-block;">
+                            @csrf
+                            <input type="hidden" name="payment_status" value="paid">
+                            <button type="submit" class="btn-sm btn-success" onclick="return confirm('{{ __('admin.confirm_accept_payment') }}')">
+                                <i class="fas fa-check"></i> {{ __('admin.accept_payment') }}
+                            </button>
+                        </form>
+                        <form action="{{ route('admin.orders.payment.update', $order) }}" method="POST" style="display: inline-block;">
+                            @csrf
+                            <input type="hidden" name="payment_status" value="failed">
+                            <button type="submit" class="btn-sm btn-danger" onclick="return confirm('{{ __('admin.confirm_reject_payment') }}')">
+                                <i class="fas fa-times"></i> {{ __('admin.reject_payment') }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @endif
 
             <div class="form-group">
                 <label for="tracking_number">{{ __('admin.tracking_number') }}</label>
@@ -203,6 +207,7 @@
 
 @push('styles')
 <style>
+    /* existing styles – unchanged */
     .order-details {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
