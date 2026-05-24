@@ -5,21 +5,22 @@
 @section('content')
 @php
     $analyticsPayload = json_encode([
-        'dates' => collect($dates)->toArray(),
-        'revenueData' => collect($revenueData)->toArray(),
-        'ordersData' => collect($ordersData)->toArray(),
-        'categoryLabels' => collect($categoryLabels ?? [])->toArray(),
-        'categoryData' => collect($categoryData ?? [])->toArray(),
-        'paymentLabels' => collect($paymentMethods ?? [])->keys()->toArray(),
-        'paymentData' => collect($paymentMethods ?? [])->values()->toArray(),
-        'newCustomers' => $newCustomers ?? 0,
+        'dates'           => collect($dates)->toArray(),
+        'revenueData'     => collect($revenueData)->toArray(),
+        'ordersData'      => collect($ordersData)->toArray(),
+        'categoryLabels'  => collect($categoryLabels ?? [])->toArray(),
+        'categoryData'    => collect($categoryData ?? [])->toArray(),
+        'paymentLabels'   => collect($paymentMethods ?? [])->keys()->toArray(),
+        'paymentData'     => collect($paymentMethods ?? [])->values()->toArray(),
+        'newCustomers'    => $newCustomers ?? 0,
         'returningCustomers' => $returningCustomers ?? 0,
-        'customersData' => collect($customersData ?? [])->toArray(),
-        'currentRange' => $currentRange ?? '30d',
+        'customersData'   => collect($customersData ?? [])->toArray(),
+        'currentRange'    => $currentRange ?? '30d',
     ]);
 @endphp
 <div class="analytics-container" data-analytics="{{ $analyticsPayload }}">
-    <!-- KPI Cards (with dynamic trends) -->
+
+    <!-- KPI Cards -->
     <div class="kpi-grid">
         <div class="kpi-card">
             <div class="kpi-icon"><i class="fas fa-money-bill-wave"></i></div>
@@ -118,16 +119,16 @@
         </div>
     </div>
 
-    <!-- Two‑column layout for charts -->
+    <!-- Two-column analytics grid -->
     <div class="analytics-grid">
         <div class="grid-left">
-            <!-- Revenue by Category (bar) -->
+            <!-- Revenue by Category -->
             <div class="analytics-card">
                 <h3>{{ __('admin.revenue_by_category') }}</h3>
                 <canvas id="categoryChart" height="200"></canvas>
             </div>
 
-            <!-- Top Customers (table) -->
+            <!-- Top Customers -->
             <div class="analytics-card">
                 <h3>{{ __('admin.top_customers') }}</h3>
                 <div class="table-responsive">
@@ -174,7 +175,7 @@
         </div>
 
         <div class="grid-right">
-            <!-- Top Products -->
+            <!-- Top Selling Products -->
             <div class="analytics-card">
                 <h3>{{ __('admin.top_selling_products') }}</h3>
                 <div class="table-responsive">
@@ -191,7 +192,8 @@
                                 <tr>
                                     <td>{{ $item->product->name ?? __('admin.deleted_product') }}</td>
                                     <td>{{ $item->total_sold }}</td>
-                                    <td>{{ format_currency($item->total_sold * ($item->product->price ?? 0)) }}</td>
+                                    {{-- Use price_at_purchase aggregated in query, not current product price --}}
+                                    <td>{{ format_currency($item->total_revenue ?? 0) }}</td>
                                 </tr>
                             @empty
                                 <tr>
@@ -226,6 +228,7 @@
                             <tr>
                                 <th>{{ __('admin.product') }}</th>
                                 <th>{{ __('admin.sold') }}</th>
+                                <th>{{ __('admin.revenue') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -233,10 +236,11 @@
                                 <tr>
                                     <td>{{ $item->product->name ?? __('admin.deleted_product') }}</td>
                                     <td>{{ $item->total_sold }}</td>
+                                    <td>{{ format_currency($item->total_revenue ?? 0) }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="2">{{ __('admin.no_products') }}</td>
+                                    <td colspan="3">{{ __('admin.no_products') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -252,7 +256,7 @@
         </div>
     </div>
 
-    <!-- Recent Orders -->
+    <!-- Recent Orders (all statuses shown for full visibility) -->
     <div class="analytics-card full-width">
         <h3>{{ __('admin.recent_orders') }}</h3>
         <div class="table-responsive">
@@ -286,15 +290,13 @@
             </table>
         </div>
     </div>
+
 </div>
 @endsection
 
 @push('styles')
 <style>
-    /* ===== Analytics Page Specific Styles ===== */
-    .analytics-container {
-        padding: 0;
-    }
+    .analytics-container { padding: 0; }
     .kpi-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -325,10 +327,9 @@
         justify-content: center;
         font-size: 1.5rem;
         color: var(--color-primary);
+        flex-shrink: 0;
     }
-    .kpi-info {
-        flex: 1;
-    }
+    .kpi-info { flex: 1; }
     .kpi-value {
         font-size: 1.6rem;
         font-weight: 700;
@@ -340,14 +341,10 @@
         color: var(--color-muted);
         margin-top: 0.2rem;
     }
-    .kpi-change {
-        font-size: 0.7rem;
-        margin-top: 0.3rem;
-    }
-    .kpi-change.up { color: #10B981; }
+    .kpi-change { font-size: 0.7rem; margin-top: 0.3rem; }
+    .kpi-change.up   { color: #10B981; }
     .kpi-change.down { color: #EF4444; }
 
-    /* Chart section */
     .chart-section {
         background: var(--color-surface);
         border-radius: 1rem;
@@ -363,16 +360,8 @@
         gap: 1rem;
         margin-bottom: 1rem;
     }
-    .chart-header h3 {
-        font-size: 1.1rem;
-        font-weight: 600;
-        margin: 0;
-    }
-    .chart-controls {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
+    .chart-header h3 { font-size: 1.1rem; font-weight: 600; margin: 0; }
+    .chart-controls { display: flex; gap: 1rem; flex-wrap: wrap; }
     .chart-type-toggle, .date-range {
         display: flex;
         gap: 0.25rem;
@@ -394,24 +383,15 @@
         box-shadow: var(--shadow-sm);
         color: var(--color-primary);
     }
-    .chart-container canvas {
-        width: 100%;
-        height: auto;
-        max-height: 400px;
-    }
+    .chart-container canvas { width: 100%; height: auto; max-height: 400px; }
 
-    /* Analytics grid */
     .analytics-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 1.5rem;
         margin-bottom: 1.5rem;
     }
-    .grid-left, .grid-right {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-    }
+    .grid-left, .grid-right { display: flex; flex-direction: column; gap: 1.5rem; }
     .analytics-card {
         background: var(--color-surface);
         border-radius: 1rem;
@@ -435,23 +415,10 @@
         text-align: left;
         border-bottom: 1px solid var(--color-border);
     }
-    .analytics-table th {
-        font-weight: 600;
-        color: var(--color-muted);
-    }
-    .stock-list {
-        list-style: none;
-        padding: 0;
-    }
-    .stock-list li {
-        padding: 0.5rem 0;
-        border-bottom: 1px solid var(--color-border);
-    }
-    .customer-types {
-        display: flex;
-        gap: 2rem;
-        margin-bottom: 1rem;
-    }
+    .analytics-table th { font-weight: 600; color: var(--color-muted); }
+    .stock-list { list-style: none; padding: 0; }
+    .stock-list li { padding: 0.5rem 0; border-bottom: 1px solid var(--color-border); }
+    .customer-types { display: flex; gap: 2rem; margin-bottom: 1rem; }
     .customer-type {
         flex: 1;
         text-align: center;
@@ -459,36 +426,20 @@
         padding: 0.5rem;
         border-radius: 0.5rem;
     }
-    .type-label {
-        display: block;
-        font-size: 0.7rem;
-        color: var(--color-muted);
-    }
-    .type-value {
-        font-size: 1.2rem;
-        font-weight: 700;
-    }
-    .full-width {
-        grid-column: span 2;
-    }
-    .table-responsive {
-        overflow-x: auto;
-    }
+    .type-label { display: block; font-size: 0.7rem; color: var(--color-muted); }
+    .type-value { font-size: 1.2rem; font-weight: 700; }
+    .full-width { grid-column: span 2; }
+    .table-responsive { overflow-x: auto; }
 
     @media (max-width: 900px) {
-        .analytics-grid {
-            grid-template-columns: 1fr;
-        }
-        .full-width {
-            grid-column: span 1;
-        }
+        .analytics-grid { grid-template-columns: 1fr; }
+        .full-width { grid-column: span 1; }
     }
 </style>
 @endpush
 
 @push('scripts')
     <script>
-        // Ensure Chart.js is loaded before analytics script
         if (typeof Chart === 'undefined') {
             console.error('Chart.js not loaded');
         }

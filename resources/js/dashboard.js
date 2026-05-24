@@ -1,16 +1,33 @@
 document.addEventListener('DOMContentLoaded', function () {
 
-    // ===== GET DATA FROM BLADE =====
     const revenueCanvas = document.getElementById('revenueChart');
-    const ordersCanvas = document.getElementById('ordersChart');
+    const ordersCanvas  = document.getElementById('ordersChart');
 
     if (!revenueCanvas || !ordersCanvas) return;
 
-    const chartData = JSON.parse(revenueCanvas.dataset.chart);
+    // Blade passes two separate data attributes:
+    //   data-revenue  → [{date, total}, ...]
+    //   data-orders   → [{date, count}, ...]
+    const revenueRaw = revenueCanvas.dataset.revenue;
+    const ordersRaw  = ordersCanvas.dataset.orders;
 
-    const dates = chartData.map(item => item.date);
-    const revenueData = chartData.map(item => item.revenue);
-    const ordersData = chartData.map(item => item.orders);
+    if (!revenueRaw || !ordersRaw) {
+        console.error('dashboard.js: missing data-revenue or data-orders attribute');
+        return;
+    }
+
+    let revenueData, ordersData;
+    try {
+        revenueData = JSON.parse(revenueRaw);
+        ordersData  = JSON.parse(ordersRaw);
+    } catch (e) {
+        console.error('dashboard.js: failed to parse chart data', e);
+        return;
+    }
+
+    const dates        = revenueData.map(item => item.date);
+    const revenueVals  = revenueData.map(item => item.total);
+    const ordersVals   = ordersData.map(item => item.count);
 
     const currencySymbol = document.documentElement.dataset.currencySymbol || 'DZD';
 
@@ -19,19 +36,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===== REVENUE CHART =====
-    const revenueCtx = revenueCanvas.getContext('2d');
-
-    new Chart(revenueCtx, {
+    new Chart(revenueCanvas.getContext('2d'), {
         type: 'line',
         data: {
             labels: dates,
             datasets: [{
                 label: `Revenue (${currencySymbol})`,
-                data: revenueData,
+                data: revenueVals,
                 borderColor: 'var(--color-primary)',
                 backgroundColor: 'rgba(100, 95, 125, 0.1)',
                 fill: true,
-                tension: 0.3
+                tension: 0.3,
+                pointRadius: 2
             }]
         },
         options: {
@@ -40,9 +56,7 @@ document.addEventListener('DOMContentLoaded', function () {
             plugins: {
                 tooltip: {
                     callbacks: {
-                        label: function (ctx) {
-                            return formatCurrency(ctx.raw);
-                        }
+                        label: ctx => formatCurrency(ctx.raw)
                     }
                 }
             },
@@ -50,9 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        callback: function (val) {
-                            return `${currencySymbol} ${val}`;
-                        }
+                        callback: val => `${currencySymbol} ${val}`
                     }
                 }
             }
@@ -60,16 +72,16 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // ===== ORDERS CHART =====
-    const ordersCtx = ordersCanvas.getContext('2d');
-
-    new Chart(ordersCtx, {
+    new Chart(ordersCanvas.getContext('2d'), {
         type: 'bar',
         data: {
             labels: dates,
             datasets: [{
                 label: 'Number of Orders',
-                data: ordersData,
-                backgroundColor: 'var(--color-accent)',
+                data: ordersVals,
+                backgroundColor: 'rgba(224, 184, 84, 0.7)',
+                borderColor: 'var(--color-accent)',
+                borderWidth: 1,
                 borderRadius: 6
             }]
         },
@@ -80,7 +92,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        stepSize: 1
+                        stepSize: 1,
+                        callback: val => Number.isInteger(val) ? val : ''
                     }
                 }
             }
