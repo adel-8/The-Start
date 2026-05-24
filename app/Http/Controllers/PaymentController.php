@@ -135,7 +135,7 @@ class PaymentController extends Controller
             }
             $total = max(0, $subtotal - $discount + $shippingCost);
 
-            // Handle address (deduplication)
+            // Handle address (deduplication) – no postal_code
             $userId = Auth::id();
             $address = null;
 
@@ -153,7 +153,7 @@ class PaymentController extends Controller
                     'address_line1'  => $checkoutData['address'],
                     'city'           => $checkoutData['city'],
                     'state'          => $checkoutData['region'],
-                    'postal_code'    => $checkoutData['postal_code'],
+                    'postal_code'    => null, // explicitly set null (or remove from fillable)
                     'country'        => 'Algeria',
                     'is_default'     => false,
                 ]);
