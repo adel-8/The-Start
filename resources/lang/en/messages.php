@@ -367,4 +367,7 @@ return [
     'edit' => 'Edit',
     'default_address_updated' => 'Default address updated.',
     'no_description' => 'No description available.',
+    'optional' => 'Optional',
+    'view_all_orders' => 'View All Orders',
+    'parent' => 'Parent',
 ];

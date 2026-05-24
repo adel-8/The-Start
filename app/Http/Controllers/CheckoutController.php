@@ -99,16 +99,16 @@ class CheckoutController extends Controller
         $request->validate([
             'address_id'     => 'nullable|exists:addresses,id',
             'full_name'      => 'required|string|max:255',
-            'email'          => 'nullable|email|max:255',   // FIX: optional
+            'email'          => 'nullable|email|max:255',
             'phone'          => 'required|string|max:20',
-            // FIX: required only when no saved address is selected
             'address'        => 'required_without:address_id|nullable|string|max:255',
             'city'           => 'required_without:address_id|nullable|string|max:100',
             'region'         => 'nullable|string|max:100',
-            'postal_code'    => 'nullable|string|max:20',   // FIX: always optional
+            'postal_code'    => 'nullable|string|max:20',
+            'delivery_type'  => 'nullable|in:home,bureau',
             'payment_method' => 'required|in:' . implode(',', $enabledPayments),
             'coupon_code'    => 'nullable|string|max:50',
-            'notes'          => 'nullable|string|max:1000', // FIX: increased limit
+            'notes'          => 'nullable|string|max:1000',
         ]);
 
         $cart = $this->getCart();
@@ -243,7 +243,8 @@ class CheckoutController extends Controller
                 'status'              => 'pending',
                 'payment_method'      => $request->payment_method,
                 'payment_status'      => 'pending',
-                'notes'               => $request->notes, // FIX: notes now saved properly
+                'delivery_type'       => $request->delivery_type ?? 'home',
+                'notes'               => $request->notes,
             ]);
 
             foreach ($items as $item) {
