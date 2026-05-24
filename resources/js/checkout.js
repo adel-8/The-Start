@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     showToast(data.message || 'Order placed!');
                     // FIX: redirect to checkout success page
                     setTimeout(() => {
-                        window.location.href = data.redirect || '/';
+                        window.location.href = data.redirect || '/orders/' + data.order_number;
                     }, 1000);
                 } else {
                     setLoading(false);
