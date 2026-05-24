@@ -53,7 +53,7 @@ class PaymentController extends Controller
             }
         }
 
-        // Calculate shipping cost
+        // Calculate shipping cost (region‑based only)
         $shippingCost = 0;
         $region = $checkoutData['region'] ?? null;
         $settings = Setting::pluck('setting_value', 'setting_key')->toArray();
@@ -62,10 +62,6 @@ class PaymentController extends Controller
             if (isset($regionCosts[$region])) {
                 $shippingCost = (float) $regionCosts[$region];
             }
-        }
-
-        if ($shippingCost === 0 && isset($settings['shipping_cost'])) {
-            $shippingCost = (float) $settings['shipping_cost'];
         }
 
         $total = max(0, $subtotal - $discount + $shippingCost);
@@ -86,7 +82,7 @@ class PaymentController extends Controller
             'proof' => 'required|file|mimes:jpeg,png,jpg,pdf|max:10240',
         ]);
 
-        // Calculate shipping cost for the selected region
+        // Calculate shipping cost (region‑based only)
         $shippingCost = 0;
         $region = $checkoutData['region'] ?? null;
         $settings = Setting::pluck('setting_value', 'setting_key')->toArray();
@@ -95,9 +91,6 @@ class PaymentController extends Controller
             if (isset($regionCosts[$region])) {
                 $shippingCost = (float) $regionCosts[$region];
             }
-        }
-        if ($shippingCost === 0 && isset($settings['shipping_cost'])) {
-            $shippingCost = (float) $settings['shipping_cost'];
         }
 
         DB::beginTransaction();
@@ -142,31 +135,35 @@ class PaymentController extends Controller
             }
             $total = max(0, $subtotal - $discount + $shippingCost);
 
-            // Handle address: use saved if address_id provided, otherwise check for existing or create new
+            // Handle address (deduplication)
             $userId = Auth::id();
-$address = Address::where('user_id', $userId)
-    ->where('address_line1', $checkoutData['address'])
-    ->where('city', $checkoutData['city'])
-    ->where('country', 'Algeria')
-    ->first();
+            $address = null;
 
-if (!$address) {
-    $address = Address::create([
-        'user_id'        => $userId,
-        'address_line1'  => $checkoutData['address'],
-        'city'           => $checkoutData['city'],
-        'state'          => $checkoutData['region'],
-        'postal_code'    => $checkoutData['postal_code'],
-        'country'        => 'Algeria',
-        'is_default'     => false,
-    ]);
-}
+            if ($userId) {
+                $address = Address::where('user_id', $userId)
+                    ->where('address_line1', $checkoutData['address'])
+                    ->where('city', $checkoutData['city'])
+                    ->where('country', 'Algeria')
+                    ->first();
+            }
+
+            if (!$address) {
+                $address = Address::create([
+                    'user_id'        => $userId,
+                    'address_line1'  => $checkoutData['address'],
+                    'city'           => $checkoutData['city'],
+                    'state'          => $checkoutData['region'],
+                    'postal_code'    => $checkoutData['postal_code'],
+                    'country'        => 'Algeria',
+                    'is_default'     => false,
+                ]);
+            }
 
             $orderNumber = 'ORD-' . strtoupper(Str::random(10));
 
             $order = Order::create([
                 'order_number'        => $orderNumber,
-                'user_id'             => Auth::id(),
+                'user_id'             => $userId,
                 'guest_name'          => $checkoutData['full_name'],
                 'guest_email'         => $checkoutData['email'],
                 'guest_phone'         => $checkoutData['phone'],
@@ -178,9 +175,11 @@ if (!$address) {
                 'status'              => 'pending',
                 'payment_method'      => 'baridimob',
                 'payment_status'      => 'pending',
+                'delivery_type'       => $checkoutData['delivery_type'] ?? 'home',
                 'notes'               => $checkoutData['notes'] ?? null,
             ]);
 
+            // Store in session for guest access (critical!)
             session(['last_order_number' => $order->order_number]);
 
             foreach ($items as $item) {
@@ -207,15 +206,20 @@ if (!$address) {
 
             DB::commit();
 
-            // Optional: Log successful proof upload
             Log::info('BaridiMob order created', [
                 'order_id' => $order->id,
                 'proof_path' => $path,
             ]);
 
-            // Send confirmation email
-            $email = $order->user ? $order->user->email : $order->guest_email;
-            Mail::to($email)->send(new OrderConfirmation($order));
+            // Send confirmation email (if email exists)
+            if ($order->guest_email || ($order->user && $order->user->email)) {
+                try {
+                    $email = $order->user ? $order->user->email : $order->guest_email;
+                    Mail::to($email)->send(new OrderConfirmation($order));
+                } catch (\Exception $mailEx) {
+                    Log::error('BaridiMob order email failed: ' . $mailEx->getMessage());
+                }
+            }
 
             return redirect()->route('orders.show', $order->order_number)
                 ->with('success', 'Payment proof uploaded! Your order has been placed.');

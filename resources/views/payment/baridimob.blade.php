@@ -2,7 +2,6 @@
 
 @section('title', $settings['baridimob_page_title'] ?? __('messages.baridimob_page_title'))
 
-
 @push('styles')
 <style>
     .payment-container {
@@ -87,6 +86,11 @@
         background: #e9f7ef;
         border-left: 4px solid #2c8f5e;
         color: #155724;
+    }
+    .alert-danger {
+        background: #f8d7da;
+        border-left: 4px solid #dc3545;
+        color: #721c24;
     }
     .text-muted {
         color: var(--color-muted);
