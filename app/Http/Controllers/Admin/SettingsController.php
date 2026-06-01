@@ -251,12 +251,12 @@ class SettingsController extends Controller
 
         $validated = $request->validate($rules);
 
-        // Handle file uploads
-        $this->handleFileUpload($request, 'logo', 'uploads/settings');
-        $this->handleFileUpload($request, 'favicon', 'uploads/settings');
-        $this->handleFileUpload($request, 'home_hero_background', 'uploads/settings');
-        $this->handleFileUpload($request, 'signup_brand_logo', 'uploads/settings');
-        $this->handleFileUpload($request, 'signin_brand_logo', 'uploads/settings');
+        // Handle file uploads (store on the `public` disk -> storage/app/public)
+        $this->handleFileUpload($request, 'logo', 'settings');
+        $this->handleFileUpload($request, 'favicon', 'settings');
+        $this->handleFileUpload($request, 'home_hero_background', 'settings');
+        $this->handleFileUpload($request, 'signup_brand_logo', 'settings');
+        $this->handleFileUpload($request, 'signin_brand_logo', 'settings');
 
         // Remove files if requested
         if ($request->has('remove_logo')) {
@@ -320,8 +320,9 @@ class SettingsController extends Controller
         if ($request->hasFile($field)) {
             $file = $request->file($field);
             $filename = time() . '_' . $field . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path($path), $filename);
-            $value = $path . '/' . $filename;
+            // Store in storage/app/public/{path}/filename
+            $stored = $file->storeAs($path, $filename, 'public');
+            $value = $stored; // e.g., settings/filename.jpg
             Setting::updateOrCreate(
                 ['setting_key' => $field],
                 ['setting_value' => $value]
@@ -332,8 +333,8 @@ class SettingsController extends Controller
     private function removeSettingFile($key)
     {
         $old = Setting::where('setting_key', $key)->value('setting_value');
-        if ($old && file_exists(public_path($old))) {
-            unlink(public_path($old));
+        if ($old && Storage::disk('public')->exists($old)) {
+            Storage::disk('public')->delete($old);
         }
         Setting::where('setting_key', $key)->delete();
     }
