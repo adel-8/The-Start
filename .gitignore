@@ -23,6 +23,16 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 # Uploaded files (do not commit)
-# Note: we keep uploads in `storage/app/public` and expose via `php artisan storage:link`.
 public/uploads/
 public/uploads/*
+
+# Temporary debug / scratch files
+tmp_*.py
+tmp_*.php
+tmp_*.js
+*.tmp
+*.bak
+/debug_*.*
+/test_*.php
+__pycache__/
+*.pyc
