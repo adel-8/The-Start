@@ -22,3 +22,7 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+# Uploaded files (do not commit)
+# Note: we keep uploads in `storage/app/public` and expose via `php artisan storage:link`.
+public/uploads/
+public/uploads/*
