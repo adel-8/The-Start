@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use Stripe\Checkout\Session as StripeSession;
 use Stripe\Stripe;
+use Stripe\Webhook;
 use App\Mail\OrderConfirmation;
 use App\Traits\CartHelper;
 
@@ -54,10 +55,35 @@ class StripeController extends Controller
             }
         }
 
-        // Calculate subtotal
+        // Load live product data to enforce active products and correct pricing.
+        $productIds = array_keys($cart);
+        $products = Product::whereIn('id', $productIds)
+            ->where('status', 'active')
+            ->get()
+            ->keyBy('id');
+
         $subtotal = 0;
-        foreach ($cart as $item) {
-            $subtotal += $item['price'] * $item['quantity'];
+        $lineItems = [];
+        foreach ($cart as $id => $item) {
+            $product = $products[$id] ?? null;
+            if (!$product) {
+                return redirect()->route('cart')->with('error', 'One or more products in your cart are no longer available.');
+            }
+            if ($product->stock < $item['quantity']) {
+                return redirect()->route('cart')->with('error', 'Not enough stock for ' . $product->name . '.');
+            }
+
+            $price = $product->price;
+            $subtotal += $price * $item['quantity'];
+
+            $lineItems[] = [
+                'price_data' => [
+                    'currency'     => 'dzd',
+                    'product_data' => ['name' => $product->name],
+                    'unit_amount'  => $price * 100,
+                ],
+                'quantity' => $item['quantity'],
+            ];
         }
 
         // Apply coupon if any
@@ -65,7 +91,12 @@ class StripeController extends Controller
         $discount = 0;
         $coupon = null;
         if ($couponCode) {
-            $couponResult = $this->couponService->validateCoupon($couponCode, $subtotal);
+            $couponResult = $this->couponService->validateCoupon(
+                $couponCode,
+                $subtotal,
+                Auth::id(),
+                $checkoutData['email'] ?? null
+            );
             if ($couponResult['valid']) {
                 $discount = $couponResult['discount'];
                 $coupon = $couponResult['coupon'];
@@ -90,19 +121,6 @@ class StripeController extends Controller
 
         $total = max(0, $subtotal - $discount + $shippingCost);
 
-        // Prepare Stripe line items
-        $lineItems = [];
-        foreach ($cart as $id => $item) {
-            $lineItems[] = [
-                'price_data' => [
-                    'currency'     => 'dzd',
-                    'product_data' => ['name' => $item['name']],
-                    'unit_amount'  => $item['price'] * 100,
-                ],
-                'quantity' => $item['quantity'],
-            ];
-        }
-
         Stripe::setApiKey(config('services.stripe.secret'));
 
         if ($shippingCost > 0) {
@@ -120,7 +138,7 @@ class StripeController extends Controller
             'payment_method_types' => ['card'],
             'line_items'           => $lineItems,
             'mode'                 => 'payment',
-            'success_url'          => route('stripe.success'),
+            'success_url'          => route('stripe.success') . '?session_id={CHECKOUT_SESSION_ID}',
             'cancel_url'           => route('stripe.cancel'),
             'metadata' => [
                 'cart'           => json_encode($cart),
@@ -128,6 +146,7 @@ class StripeController extends Controller
                 'coupon_code'    => $couponCode ?? '',
                 'address_id'     => $address ? $address->id : '',
                 'coupon_discount'=> $discount,
+                'user_id'        => $userId ?? '',
             ],
         ]);
 
@@ -139,41 +158,75 @@ class StripeController extends Controller
 
     public function success(Request $request)
     {
-        // Retrieve data from local session
-        $cart = Session::get('stripe_cart');
-        $checkoutData = Session::get('stripe_checkout_data');
-        $couponCode = Session::get('stripe_coupon_code');
-        $addressId = Session::get('stripe_address_id');
+        $sessionId = $request->query('session_id');
+        if (!$sessionId) {
+            return redirect()->route('cart')->with('error', 'Unable to verify payment. Please contact support.');
+        }
 
-        // Fallback to Stripe metadata if local session missing
-        if (!$cart || !$checkoutData) {
-            $sessionId = $request->query('session_id');
-            if (!$sessionId) {
-                return redirect()->route('cart')->with('error', 'Unable to verify payment. Please contact support.');
-            }
+        $order = Order::where('stripe_session_id', $sessionId)->first();
+        if ($order) {
+            return redirect()->route('orders.show', $order->order_number)
+                ->with('success', 'Payment successful! Your order has been placed.');
+        }
 
-            Stripe::setApiKey(config('services.stripe.secret'));
-            try {
-                $stripeSession = StripeSession::retrieve($sessionId);
-                $cart = json_decode($stripeSession->metadata->cart, true);
-                $checkoutData = json_decode($stripeSession->metadata->checkout_data, true);
-                $couponCode = $stripeSession->metadata->coupon_code ?? null;
-                $addressId = $stripeSession->metadata->address_id ?? null;
-            } catch (\Exception $e) {
-                Log::error('Stripe fallback failed: ' . $e->getMessage());
-                return redirect()->route('cart')->with('error', 'Payment verification failed. Please contact support.');
+        return view('stripe.success', [
+            'sessionId' => $sessionId,
+        ]);
+    }
+
+    public function webhook(Request $request)
+    {
+        $payload = $request->getContent();
+        $signature = $request->header('Stripe-Signature');
+        $webhookSecret = config('services.stripe.webhook_secret') ?? env('STRIPE_WEBHOOK_SECRET');
+
+        if (!$webhookSecret) {
+            Log::error('Stripe webhook secret is not configured.');
+            return response('Webhook secret is not configured.', 500);
+        }
+
+        try {
+            $event = Webhook::constructEvent($payload, $signature, $webhookSecret);
+        } catch (\UnexpectedValueException $e) {
+            return response('Invalid payload.', 400);
+        } catch (\Stripe\Exception\SignatureVerificationException $e) {
+            return response('Invalid signature.', 400);
+        }
+
+        if ($event->type === 'checkout.session.completed') {
+            $session = $event->data->object;
+            $metadata = $session->metadata ?? null;
+            if ($metadata && !empty($metadata->cart) && !empty($metadata->checkout_data)) {
+                $sessionId = $session->id;
+                if (!Order::where('stripe_session_id', $sessionId)->exists()) {
+                    try {
+                        $this->createStripeOrderFromMetadata(
+                            json_decode($metadata->cart, true),
+                            json_decode($metadata->checkout_data, true),
+                            $metadata->coupon_code ?? null,
+                            $metadata->address_id ?? null,
+                            !empty($metadata->user_id) ? (int) $metadata->user_id : null,
+                            $sessionId
+                        );
+                    } catch (\Exception $e) {
+                        Log::error('Stripe webhook order creation failed: ' . $e->getMessage());
+                        return response('Webhook processing failed.', 500);
+                    }
+                }
             }
         }
 
-        if (!$cart || !$checkoutData) {
-            return redirect()->route('cart')->with('error', 'Unable to retrieve order details.');
-        }
+        return response('Webhook received.', 200);
+    }
 
+    protected function createStripeOrderFromMetadata(array $cart, array $checkoutData, ?string $couponCode, ?string $addressId, ?int $userId, string $stripeSessionId)
+    {
         DB::beginTransaction();
 
         try {
             $productIds = array_keys($cart);
             $products = Product::whereIn('id', $productIds)
+                ->where('status', 'active')
                 ->lockForUpdate()
                 ->get()
                 ->keyBy('id');
@@ -184,7 +237,7 @@ class StripeController extends Controller
             foreach ($cart as $id => $item) {
                 $product = $products[$id] ?? null;
                 if (!$product) {
-                    throw new \Exception("Product not found.");
+                    throw new \Exception('One or more products in your cart are no longer available.');
                 }
                 if ($product->stock < $item['quantity']) {
                     throw new \Exception("Not enough stock for {$product->name}.");
@@ -200,11 +253,15 @@ class StripeController extends Controller
                 ];
             }
 
-            // Apply coupon if present
             $discount = 0;
             $couponId = null;
             if ($couponCode) {
-                $couponResult = $this->couponService->validateCoupon($couponCode, $subtotal);
+                $couponResult = $this->couponService->validateCoupon(
+                    $couponCode,
+                    $subtotal,
+                    $userId,
+                    $checkoutData['email'] ?? null
+                );
                 if ($couponResult['valid']) {
                     $discount = $couponResult['discount'];
                     $couponId = $couponResult['coupon']->id;
@@ -228,13 +285,11 @@ class StripeController extends Controller
 
             $total = max(0, $subtotal - $discount + $shippingCost);
 
-            // Create or reuse address
             $userId = Auth::id();
-            $address = Address::where('user_id', $userId)
-                ->where('address_line1', $checkoutData['address'])
-                ->where('city', $checkoutData['city'])
-                ->where('country', 'Algeria')
-                ->first();
+            $address = null;
+            if (!empty($addressId)) {
+                $address = Address::find($addressId);
+            }
 
             if (!$address) {
                 $address = Address::create([
@@ -249,10 +304,9 @@ class StripeController extends Controller
             }
 
             $orderNumber = 'ORD-' . strtoupper(Str::random(10));
-
             $order = Order::create([
                 'order_number'        => $orderNumber,
-                'user_id'             => Auth::id(),
+                'user_id'             => $userId,
                 'guest_name'          => $checkoutData['full_name'],
                 'guest_email'         => $checkoutData['email'],
                 'guest_phone'         => $checkoutData['phone'],
@@ -264,10 +318,9 @@ class StripeController extends Controller
                 'status'              => 'pending',
                 'payment_method'      => 'stripe',
                 'payment_status'      => 'paid',
+                'stripe_session_id'   => $stripeSessionId,
                 'notes'               => $checkoutData['notes'] ?? null,
             ]);
-
-            session(['last_order_number' => $order->order_number]);
 
             foreach ($items as $item) {
                 OrderItem::create([
@@ -281,27 +334,19 @@ class StripeController extends Controller
                 $products[$item['product_id']]->decrement('stock', $item['quantity']);
             }
 
-            // Clear all Stripe session data
-            Session::forget([
-                'stripe_cart', 'stripe_checkout_data', 'stripe_coupon_code',
-                'stripe_address_id', 'stripe_session_id'
-            ]);
-
-            // Clear the cart using the helper
-            $this->saveCart([]);
-
             DB::commit();
 
-            // Send order confirmation email
-            $email = $order->user ? $order->user->email : $order->guest_email;
-            Mail::to($email)->send(new OrderConfirmation($order));
+            try {
+                $email = $order->user ? $order->user->email : $order->guest_email;
+                Mail::to($email)->send(new OrderConfirmation($order));
+            } catch (\Exception $mailEx) {
+                Log::error('Stripe order confirmation email failed: ' . $mailEx->getMessage());
+            }
 
-            return redirect()->route('orders.show', $order->order_number)
-                ->with('success', 'Payment successful! Your order has been placed.');
+            return $order;
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Stripe order creation failed: ' . $e->getMessage());
-            return redirect()->route('cart')->with('error', 'Payment was successful but we encountered an issue creating your order. Please contact support.');
+            throw $e;
         }
     }
 

@@ -160,6 +160,7 @@ class CheckoutController extends Controller
 
         try {
             $products = Product::whereIn('id', array_keys($cart))
+                ->where('status', 'active')
                 ->lockForUpdate()
                 ->get()
                 ->keyBy('id');
@@ -169,7 +170,9 @@ class CheckoutController extends Controller
 
             foreach ($cart as $id => $item) {
                 $product = $products[$id] ?? null;
-                if (!$product) throw new \Exception("Product not found.");
+                if (!$product) {
+                    throw new \Exception('One or more products in your cart are no longer available.');
+                }
                 if ($product->stock < $item['quantity']) {
                     throw new \Exception("Not enough stock for {$product->name}.");
                 }
@@ -184,7 +187,12 @@ class CheckoutController extends Controller
                 ];
             }
 
-            $couponData = $this->couponService->validateCoupon($request->coupon_code, $subtotal);
+            $couponData = $this->couponService->validateCoupon(
+                $request->coupon_code,
+                $subtotal,
+                Auth::id(),
+                $request->email
+            );
             $discount = 0;
             $couponId = null;
             if ($couponData && $couponData['valid']) {
@@ -291,16 +299,21 @@ class CheckoutController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Checkout error: ' . $e->getMessage());
+            Log::error('Checkout error: ' . $e->getMessage(), [
+                'cart' => $cart,
+                'user_id' => Auth::id(),
+                'coupon_code' => $request->coupon_code,
+            ]);
 
+            $userMessage = 'Unable to place your order at this time. Please contact support.';
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'error'   => $e->getMessage(),
+                    'error'   => $userMessage,
                 ], 422);
             }
 
-            return back()->with('error', $e->getMessage())->withInput();
+            return back()->with('error', $userMessage)->withInput();
         }
     }
 
@@ -328,7 +341,7 @@ class CheckoutController extends Controller
             $subtotal += $item['price'] * $item['quantity'];
         }
 
-        $result = $this->couponService->validateCoupon($request->code, $subtotal);
+        $result = $this->couponService->validateCoupon($request->code, $subtotal, Auth::id());
 
         if (!$result['valid']) {
             return response()->json([

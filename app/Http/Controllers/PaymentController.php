@@ -98,6 +98,7 @@ class PaymentController extends Controller
         try {
             $productIds = array_keys($cart);
             $products = Product::whereIn('id', $productIds)
+                ->where('status', 'active')
                 ->lockForUpdate()
                 ->get()
                 ->keyBy('id');
@@ -107,7 +108,9 @@ class PaymentController extends Controller
 
             foreach ($cart as $id => $item) {
                 $product = $products[$id] ?? null;
-                if (!$product) throw new \Exception("Product not found.");
+                if (!$product) {
+                    throw new \Exception('One or more products in your cart are no longer available.');
+                }
                 if ($product->stock < $item['quantity']) {
                     throw new \Exception("Not enough stock for {$product->name}.");
                 }
@@ -127,7 +130,12 @@ class PaymentController extends Controller
             $discount = 0;
             $couponId = null;
             if ($couponCode) {
-                $couponResult = $this->couponService->validateCoupon($couponCode, $subtotal);
+                $couponResult = $this->couponService->validateCoupon(
+                    $couponCode,
+                    $subtotal,
+                    Auth::id(),
+                    $checkoutData['email'] ?? null
+                );
                 if ($couponResult['valid']) {
                     $discount = $couponResult['discount'];
                     $couponId = $couponResult['coupon']->id;
@@ -194,8 +202,8 @@ class PaymentController extends Controller
                 $products[$item['product_id']]->decrement('stock', $item['quantity']);
             }
 
-            // Save the proof
-            $path = $request->file('proof')->store('proofs', 'public');
+            // Save the proof on the non-public local disk so proofs are not directly web-accessible.
+            $path = $request->file('proof')->store('proofs', 'local');
             $order->update(['payment_proof' => $path]);
 
             // Clear all BaridiMob session data
@@ -230,7 +238,7 @@ class PaymentController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            return back()->with('error', 'Failed to create order: ' . $e->getMessage());
+            return back()->with('error', 'Failed to create order. Please contact support.');
         }
     }
 }

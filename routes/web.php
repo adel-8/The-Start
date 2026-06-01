@@ -226,6 +226,9 @@ Route::post('/product/{product}/review', [ReviewController::class, 'store'])->na
 */
 
 Route::match(['get', 'post'], '/stripe/checkout', [StripeController::class, 'checkout'])->middleware('throttle:3,1')->name('stripe.checkout');
+Route::post('/stripe/webhook', [StripeController::class, 'webhook'])
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+    ->name('stripe.webhook');
 Route::get('/stripe/success', [StripeController::class, 'success'])->name('stripe.success');
 Route::get('/stripe/cancel', [StripeController::class, 'cancel'])->name('stripe.cancel');
 
@@ -261,11 +264,7 @@ Route::get('/shipping-policy', [App\Http\Controllers\PageController::class, 'shi
 
 
 
-// ─── ADD THIS ROUTE to web.php in the Checkout section ───
-// Place it right after the existing checkout routes:
 
-Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
-Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:5,1')->name('checkout.store');
 
 // FIX: Add this new success route
 Route::get('/checkout/success/{orderNumber}', [CheckoutController::class, 'success'])->name('checkout.success');

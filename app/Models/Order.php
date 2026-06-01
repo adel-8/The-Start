@@ -20,6 +20,7 @@ class Order extends Model
     'status',
     'payment_method',
     'payment_status',
+    'stripe_session_id',
     'tracking_number',
     'notes',
     'payment_proof', 
