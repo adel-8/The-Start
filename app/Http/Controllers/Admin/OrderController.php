@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class OrderController extends Controller
 {
@@ -37,6 +38,25 @@ class OrderController extends Controller
     {
         $order->load('user', 'items.product', 'shippingAddress', 'billingAddress', 'coupon');
         return view('admin.orders.show', compact('order'));
+    }
+
+    /**
+     * Stream or download a payment proof file stored on the local disk.
+     */
+    public function proof(Order $order)
+    {
+        if (!$order->payment_proof) {
+            abort(404);
+        }
+
+        $path = ltrim($order->payment_proof, '/');
+
+        if (!Storage::disk('local')->exists($path)) {
+            abort(404);
+        }
+
+        // Stream the file inline when possible (images/PDFs) or prompt download.
+        return Storage::disk('local')->response($path);
     }
 
     public function update(Request $request, Order $order)

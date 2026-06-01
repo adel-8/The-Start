@@ -263,13 +263,13 @@ class CheckoutController extends Controller
 
             DB::commit();
 
-            // Send order confirmation email
+            // Send order confirmation email (queued)
             if ($order->guest_email || ($order->user && $order->user->email)) {
                 try {
                     $email = $order->user ? $order->user->email : $order->guest_email;
-                    Mail::to($email)->send(new OrderConfirmation($order));
+                    Mail::to($email)->queue(new OrderConfirmation($order));
                 } catch (\Exception $mailEx) {
-                    Log::error('Order confirmation email failed: ' . $mailEx->getMessage());
+                    Log::error('Order confirmation queue failed: ' . $mailEx->getMessage());
                 }
             }
 

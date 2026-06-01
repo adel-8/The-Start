@@ -24,6 +24,10 @@ class Product extends Model
         'image_url',
     ];
 
+    protected $hidden = [
+        'buy_price',
+    ];
+
     protected $casts = [
         'is_new' => 'boolean',
         'bestseller' => 'boolean',

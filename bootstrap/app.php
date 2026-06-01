@@ -14,6 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->redirectGuestsTo(fn () => route('signin'));
         $middleware->appendToGroup('web', \App\Http\Middleware\SetLocale::class);
+        // Global security headers applied to all web routes
+        $middleware->appendToGroup('web', \App\Http\Middleware\SecurityHeaders::class);
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'owner' => \App\Http\Middleware\OwnerMiddleware::class,

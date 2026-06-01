@@ -33,8 +33,13 @@ use App\Http\Controllers\Admin\ContactMessageController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\StripeController;
+use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PageController;
+use Illuminate\Http\Request;
+use Illuminate\Auth\Events\Verified;
+
+use App\Models\User;
 
 /*
 |--------------------------------------------------------------------------
@@ -74,7 +79,7 @@ Route::get('/signin', [LoginController::class, 'showLoginForm'])->name('signin')
 Route::post('/signin', [LoginController::class, 'login'])->middleware('throttle:5,1');
 
 Route::get('/signup', [RegisterController::class, 'showSignupForm'])->name('signup');
-Route::post('/signup', [RegisterController::class, 'register']);
+Route::post('/signup', [RegisterController::class, 'register'])->middleware('throttle:signup');
 
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
@@ -83,9 +88,40 @@ Route::get('/login', fn () => redirect()->route('signin'))->name('login');
 
 // Password reset
 Route::get('/forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
-Route::post('/forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+Route::post('/forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email')->middleware('throttle:forgot_password');
 Route::get('/reset-password/{token}', [App\Http\Controllers\Auth\ResetPasswordController::class, 'showResetForm'])->name('password.reset');
 Route::post('/reset-password', [App\Http\Controllers\Auth\ResetPasswordController::class, 'reset'])->name('password.update');
+
+// Email verification
+Route::get('/email/verify', function () {
+    return view('auth.verify-email');
+})->name('verification.notice');
+
+Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
+    $user = User::findOrFail($id);
+
+    if (! hash_equals((string) $hash, sha1($user->email))) {
+        abort(403);
+    }
+
+    if ($user->hasVerifiedEmail()) {
+        return redirect()->route('signin')->with('success', 'Your email is already verified. Please sign in.');
+    }
+
+    $user->markEmailAsVerified();
+    event(new Verified($user));
+
+    return redirect()->route('signin')->with('success', 'Your email has been verified. You can now sign in.');
+})->middleware('signed')->name('verification.verify');
+
+Route::post('/email/verification-notification', function (Request $request) {
+    if (! $request->user()) {
+        return redirect()->route('signin');
+    }
+
+    $request->user()->sendEmailVerificationNotification();
+    return back()->with('success', 'A fresh verification link has been sent to your email address.');
+})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
 /*
 |--------------------------------------------------------------------------
@@ -95,6 +131,9 @@ Route::post('/reset-password', [App\Http\Controllers\Auth\ResetPasswordControlle
 
 Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
 Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:5,1')->name('checkout.store');
+
+// Checkout success page (kept here so named routes are near checkout)
+Route::get('/checkout/success/{orderNumber}', [CheckoutController::class, 'success'])->name('checkout.success');
 
 // Coupon (throttled)
 Route::post('/coupon/apply', [CheckoutController::class, 'applyCoupon'])
@@ -133,6 +172,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Orders
     Route::resource('orders', AdminOrderController::class)->only(['index', 'show', 'update']);
     Route::post('/orders/{order}/payment', [AdminOrderController::class, 'updatePaymentStatus'])->name('orders.payment.update');
+    // Secure access to payment proofs (stored on local disk)
+    Route::get('/orders/{order}/proof', [AdminOrderController::class, 'proof'])->name('orders.proof');
     
     // Coupons
     Route::resource('coupons', CouponController::class);
@@ -179,7 +220,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::get('/account/orders', [UserOrderController::class, 'index'])->name('orders.index');
+    Route::get('/account/orders', [UserOrderController::class, 'index'])->middleware('verified')->name('orders.index');
 });
 
 /*
@@ -189,7 +230,7 @@ Route::middleware('auth')->group(function () {
 */
 
 Route::get('/contact', [ContactController::class, 'index'])->name('contact');
-Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
+Route::post('/contact', [ContactController::class, 'store'])->name('contact.store')->middleware('throttle:contact');
 
 /*
 |--------------------------------------------------------------------------
@@ -228,6 +269,8 @@ Route::post('/product/{product}/review', [ReviewController::class, 'store'])->na
 Route::match(['get', 'post'], '/stripe/checkout', [StripeController::class, 'checkout'])->middleware('throttle:3,1')->name('stripe.checkout');
 Route::get('/stripe/success', [StripeController::class, 'success'])->name('stripe.success');
 Route::get('/stripe/cancel', [StripeController::class, 'cancel'])->name('stripe.cancel');
+// Stripe webhook endpoint (Stripe will POST here)
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle']);
 
 /*
 |--------------------------------------------------------------------------
@@ -258,14 +301,3 @@ Route::get('/terms', [App\Http\Controllers\PageController::class, 'terms'])->nam
 Route::get('/privacy', [App\Http\Controllers\PageController::class, 'privacy'])->name('privacy');
 Route::get('/return-policy', [App\Http\Controllers\PageController::class, 'returnPolicy'])->name('return.policy');
 Route::get('/shipping-policy', [App\Http\Controllers\PageController::class, 'shippingPolicy'])->name('shipping.policy');
-
-
-
-// ─── ADD THIS ROUTE to web.php in the Checkout section ───
-// Place it right after the existing checkout routes:
-
-Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
-Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:5,1')->name('checkout.store');
-
-// FIX: Add this new success route
-Route::get('/checkout/success/{orderNumber}', [CheckoutController::class, 'success'])->name('checkout.success');

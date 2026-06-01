@@ -120,16 +120,16 @@
                     <div class="payment-proof">
                         @php
                             $proofPath = ltrim($order->payment_proof, '/');
-                            $proofUrl  = asset('storage/' . $proofPath);
+                            $proofRoute = route('admin.orders.proof', $order);
                             $ext       = pathinfo($proofPath, PATHINFO_EXTENSION);
-                            $isImage   = in_array(strtolower($ext), ['jpg','jpeg','png','gif','webp']);
+                            $isImage   = in_array(strtolower($ext), ['jpg','jpeg','png','gif','webp','webp']);
                         @endphp
                         @if($isImage)
-                            <a href="{{ $proofUrl }}" target="_blank">
-                                <img src="{{ $proofUrl }}" class="proof-image" alt="{{ __('admin.payment_proof') }}">
+                            <a href="{{ $proofRoute }}" target="_blank">
+                                <img src="{{ $proofRoute }}" class="proof-image" alt="{{ __('admin.payment_proof') }}">
                             </a>
                         @else
-                            <a href="{{ $proofUrl }}" target="_blank" class="btn-sm btn-primary">
+                            <a href="{{ $proofRoute }}" target="_blank" class="btn-sm btn-primary">
                                 <i class="fas fa-file-pdf"></i> {{ __('admin.view_proof') }}
                             </a>
                         @endif

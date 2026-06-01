@@ -35,10 +35,10 @@ class RegisterController extends Controller
             'role_id'  => 3, // default customer role
         ]);
 
-        // Log the user in
-        Auth::login($user);
+        // Send email verification without logging in immediately
+        $user->sendEmailVerificationNotification();
 
-        // Redirect to intended page or home
-        return redirect()->intended(route('home'));
+        return redirect()->route('verification.notice')
+            ->with('success', 'Please check your email to verify your account before signing in.');
     }
 }

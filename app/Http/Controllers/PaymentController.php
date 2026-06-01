@@ -194,8 +194,9 @@ class PaymentController extends Controller
                 $products[$item['product_id']]->decrement('stock', $item['quantity']);
             }
 
-            // Save the proof
-            $path = $request->file('proof')->store('proofs', 'public');
+            // Save the proof to the local (non-public) disk so proofs are not
+            // directly accessible via the public storage symlink.
+            $path = $request->file('proof')->store('proofs');
             $order->update(['payment_proof' => $path]);
 
             // Clear all BaridiMob session data
@@ -211,13 +212,13 @@ class PaymentController extends Controller
                 'proof_path' => $path,
             ]);
 
-            // Send confirmation email (if email exists)
+            // Queue confirmation email (if email exists)
             if ($order->guest_email || ($order->user && $order->user->email)) {
                 try {
                     $email = $order->user ? $order->user->email : $order->guest_email;
-                    Mail::to($email)->send(new OrderConfirmation($order));
+                    Mail::to($email)->queue(new OrderConfirmation($order));
                 } catch (\Exception $mailEx) {
-                    Log::error('BaridiMob order email failed: ' . $mailEx->getMessage());
+                    Log::error('BaridiMob order queue failed: ' . $mailEx->getMessage());
                 }
             }
 
