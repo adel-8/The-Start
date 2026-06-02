@@ -620,20 +620,12 @@ body {
     }
 
     .hero-title {
-        font-size: 1.6rem;
+        font-size: 1.8rem;
         margin-bottom: 1rem;
     }
 
     .hero-content {
-        /* On small screens anchor the content to the right and occupy 60% width
-           so the background photo remains visible on the left. */
-        width: 60%;
-        max-width: none;
-        left: 50%;
-        right: 50%;
-        top: 50%;
-        transform: translateY(-50%);
-        text-align: left;
+        width: 95%;
     }
 
     .hero-content-backdrop {
