@@ -9,7 +9,8 @@
 @section('content')
 <div class="product-page">
     <div class="container">
-        <!-- Breadcrumb -->
+
+        {{-- Breadcrumb --}}
         <nav class="breadcrumb" aria-label="breadcrumb">
             <a href="{{ route('home') }}">{{ __('messages.home') }}</a>
             <span class="separator">/</span>
@@ -19,8 +20,9 @@
         </nav>
 
         <div class="product-layout">
-            <!-- Left: Image -->
-            <div class="product-gallery">
+
+            {{-- ── Left: Image ── --}}
+            <div class="product-gallery" data-reveal>
                 <div class="main-image">
                     @if($product->image_url)
                         <img src="{{ asset($product->image_url) }}" alt="{{ $product->name }}">
@@ -33,9 +35,10 @@
                 </div>
             </div>
 
-            <!-- Right: Details -->
-            <div class="product-details">
-                <!-- Badges -->
+            {{-- ── Right: Details ── --}}
+            <div class="product-details" data-reveal>
+
+                {{-- Badges --}}
                 <div class="product-badges">
                     @if($product->is_new)
                         <span class="badge badge-new">{{ __('messages.new') }}</span>
@@ -50,40 +53,54 @@
 
                 <h1 class="product-title">{{ $product->name }}</h1>
 
-                <div class="product-price">
-                    {{ format_currency($product->price) }}
-                </div>
+                {{-- Animated star rating --}}
+                @php $avgRating = $product->averageRating(); @endphp
+                @if($avgRating)
+                    <div class="product-stars" aria-label="{{ __('messages.average_rating') }}: {{ number_format($avgRating, 1) }}">
+                        @for($i = 1; $i <= 5; $i++)
+                            <span class="star {{ $i <= round($avgRating) ? 'star-filled' : 'star-empty' }}">
+                                {{ $i <= round($avgRating) ? '★' : '☆' }}
+                            </span>
+                        @endfor
+                        <span class="rating-value">({{ number_format($avgRating, 1) }})</span>
+                    </div>
+                @endif
 
-                <div class="product-description">
-                    {{ $product->description ?? __('messages.no_description') }}
-                </div>
+                <div class="product-price">{{ format_currency($product->price) }}</div>
 
-                <!-- Stock status -->
-                @php
-                    $inStock = ($product->stock ?? 0) > 0 && $product->status === 'active';
-                @endphp
+                {{-- Stock status --}}
+                @php $inStock = ($product->stock ?? 0) > 0 && $product->status === 'active'; @endphp
                 <div class="stock-status">
                     @if($inStock)
-                        <span class="in-stock">{{ __('messages.in_stock') }}</span>
+                        <span class="in-stock">
+                            <i class="fas fa-check-circle"></i> {{ __('messages.in_stock') }}
+                        </span>
                     @else
-                        <span class="out-of-stock">{{ __('messages.out_of_stock') }}</span>
+                        <span class="out-of-stock">
+                            <i class="fas fa-times-circle"></i> {{ __('messages.out_of_stock') }}
+                        </span>
                     @endif
                 </div>
 
                 @if($inStock)
-                    <!-- Quantity selector -->
+                    {{-- Quantity selector with micro-bounce --}}
                     <div class="quantity-selector">
                         <label for="quantity">{{ __('messages.quantity') }}:</label>
                         <div class="quantity-controls">
-                            <button class="qty-btn" id="decreaseQty" type="button">-</button>
-                            <input type="number" id="quantity" name="quantity" value="1" min="1" max="{{ $product->stock }}">
-                            <button class="qty-btn" id="increaseQty" type="button">+</button>
+                            <button class="qty-btn" id="decreaseQty" type="button" aria-label="Decrease">−</button>
+                            <input type="number" id="quantity" name="quantity"
+                                   value="1" min="1" max="{{ $product->stock }}">
+                            <button class="qty-btn" id="increaseQty" type="button" aria-label="Increase">+</button>
                         </div>
                     </div>
 
-                    <!-- Action buttons -->
+                    {{-- Action buttons --}}
                     <div class="action-buttons">
-                        <button class="add-cart-btn" data-id="{{ $product->id }}" data-name="{{ $product->name }}" data-price="{{ $product->price }}">
+                        <button class="add-cart-btn"
+                                data-id="{{ $product->id }}"
+                                data-name="{{ $product->name }}"
+                                data-price="{{ $product->price }}">
+                            <i class="fas fa-shopping-bag"></i>
                             {{ $settings['product_add_to_cart_button_text'] ?? __('messages.add_to_cart') }}
                         </button>
                         <button class="buy-now-btn" id="buyNowBtn">
@@ -97,132 +114,330 @@
                 @endif
             </div>
 
-            <!-- Reviews Section -->
-            <div class="reviews-section">
-                <h3>{{ $settings['product_reviews_heading'] ?? __('messages.customer_reviews') }}</h3>
-
-                <!-- Display flash messages -->
-                @if(session('success'))
-                    <div class="alert alert-success">
-                        <i class="fas fa-check-circle"></i> {{ session('success') }}
-                    </div>
-                @endif
-                @if(session('error'))
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
-                    </div>
-                @endif
-
-                @php
-                    $avgRating = $product->averageRating(); // must be defined in Product model
-                @endphp
-                @if($avgRating)
-                    <div class="average-rating">
-                        <span>{{ __('messages.average_rating') }}: </span>
-                        <div class="stars">
-                            @for($i = 1; $i <= 5; $i++)
-                                @if($i <= round($avgRating))
-                                    ★
-                                @else
-                                    ☆
-                                @endif
-                            @endfor
-                            ({{ number_format($avgRating, 1) }})
-                        </div>
-                    </div>
-                @endif
-
-                <div class="reviews-list">
-                    @forelse($product->approvedReviews()->latest()->get() as $review)
-                        <div class="review-item">
-                            <div class="review-header">
-                                <strong>{{ $review->user->name ?? $review->user->username }}</strong>
-                                <div class="stars">
-                                    @for($i = 1; $i <= 5; $i++)
-                                        @if($i <= $review->rating)
-                                            ★
-                                        @else
-                                            ☆
-                                        @endif
-                                    @endfor
-                                </div>
-                                <small>{{ $review->created_at->format('M d, Y') }}</small>
-                            </div>
-                            <p>{{ $review->comment }}</p>
-                        </div>
-                    @empty
-                        <p>{{ __('messages.no_reviews_yet') }}</p>
-                    @endforelse
+            {{-- ══════════════════════════════════════════
+                 TABS: Description | Reviews
+            ══════════════════════════════════════════ --}}
+            <div class="product-tabs" data-reveal>
+                <div class="tabs-nav" role="tablist">
+                    <button class="tab-btn active" role="tab"
+                            aria-selected="true" data-tab="description">
+                        {{ __('messages.description') }}
+                    </button>
+                    <button class="tab-btn" role="tab"
+                            aria-selected="false" data-tab="reviews">
+                        {{ __('messages.customer_reviews') }}
+                        @php $reviewCount = $product->approvedReviews()->count(); @endphp
+                        @if($reviewCount)
+                            <span class="tab-count">{{ $reviewCount }}</span>
+                        @endif
+                    </button>
                 </div>
 
-                @auth
-                    @php
-                        $userReview = $product->reviews()->where('user_id', auth()->id())->first();
-                    @endphp
-                    @if(!$userReview)
-                        <div class="review-form">
-                            <h4>{{ __('messages.write_a_review') }}</h4>
-                            <form action="{{ route('product.review.store', $product) }}" method="POST">
-                                @csrf
-                                <div class="form-group">
-                                    <label>{{ __('messages.rating') }}</label>
-                                    <select name="rating" required>
-                                        <option value="5">5 – {{ __('messages.excellent') }}</option>
-                                        <option value="4">4 – {{ __('messages.very_good') }}</option>
-                                        <option value="3">3 – {{ __('messages.average') }}</option>
-                                        <option value="2">2 – {{ __('messages.poor') }}</option>
-                                        <option value="1">1 – {{ __('messages.very_poor') }}</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>{{ __('messages.comment_optional') }}</label>
-                                    <textarea name="comment" rows="4"></textarea>
-                                </div>
-                                <button type="submit" class="btn-primary">{{ __('messages.submit_review') }}</button>
-                            </form>
+                {{-- Description tab --}}
+                <div class="tab-panel active" id="tab-description" role="tabpanel">
+                    @if($product->description)
+                        <div class="product-description-body">
+                            {!! nl2br(e($product->description)) !!}
                         </div>
                     @else
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> {{ __('messages.already_reviewed') }}
+                        <p class="tab-empty">{{ __('messages.no_description') }}</p>
+                    @endif
+                </div>
+
+                {{-- Reviews tab --}}
+                <div class="tab-panel" id="tab-reviews" role="tabpanel">
+
+                    @if(session('success'))
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> {{ session('success') }}
                         </div>
                     @endif
-                @else
-                    <p class="login-to-review-message" style="color: #dc3545; font-weight: 500;">
-                        {!! __('messages.login_to_review', ['link' => '<a href="'.route('signin').'" style="color: #dc3545; text-decoration: underline;">'.__('messages.login').'</a>']) !!}
-                    </p>
-                @endauth
+                    @if(session('error'))
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+                        </div>
+                    @endif
+
+                    @if($avgRating)
+                        <div class="average-rating">
+                            <span class="avg-number">{{ number_format($avgRating, 1) }}</span>
+                            <div class="avg-stars">
+                                @for($i = 1; $i <= 5; $i++)
+                                    <span class="star {{ $i <= round($avgRating) ? 'star-filled' : 'star-empty' }}">
+                                        {{ $i <= round($avgRating) ? '★' : '☆' }}
+                                    </span>
+                                @endfor
+                            </div>
+                            <span class="avg-label">{{ __('messages.average_rating') }}</span>
+                        </div>
+                    @endif
+
+                    <div class="reviews-list">
+                        @forelse($product->approvedReviews()->latest()->get() as $review)
+                            <div class="review-item">
+                                <div class="review-header">
+                                    <strong>{{ $review->user->name ?? $review->user->username }}</strong>
+                                    <div class="review-stars">
+                                        @for($i = 1; $i <= 5; $i++)
+                                            <span class="{{ $i <= $review->rating ? 'star-filled' : 'star-empty' }}">
+                                                {{ $i <= $review->rating ? '★' : '☆' }}
+                                            </span>
+                                        @endfor
+                                    </div>
+                                    <small>{{ $review->created_at->format('M d, Y') }}</small>
+                                </div>
+                                @if($review->comment)
+                                    <p>{{ $review->comment }}</p>
+                                @endif
+                            </div>
+                        @empty
+                            <p class="tab-empty">{{ __('messages.no_reviews_yet') }}</p>
+                        @endforelse
+                    </div>
+
+                    @auth
+                        @php $userReview = $product->reviews()->where('user_id', auth()->id())->first(); @endphp
+                        @if(!$userReview)
+                            <div class="review-form">
+                                <h4>{{ __('messages.write_a_review') }}</h4>
+                                <form action="{{ route('product.review.store', $product) }}" method="POST">
+                                    @csrf
+                                    <div class="form-group">
+                                        <label>{{ __('messages.rating') }}</label>
+                                        <select name="rating" required>
+                                            <option value="5">5 – {{ __('messages.excellent') }}</option>
+                                            <option value="4">4 – {{ __('messages.very_good') }}</option>
+                                            <option value="3">3 – {{ __('messages.average') }}</option>
+                                            <option value="2">2 – {{ __('messages.poor') }}</option>
+                                            <option value="1">1 – {{ __('messages.very_poor') }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>{{ __('messages.your_review') }}</label>
+                                        <textarea name="comment" rows="4"
+                                                  placeholder="{{ __('messages.share_your_experience') }}"
+                                                  required minlength="10"></textarea>
+                                    </div>
+                                    <button type="submit" class="btn-primary">{{ __('messages.submit_review') }}</button>
+                                </form>
+                            </div>
+                        @else
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> {{ __('messages.already_reviewed') }}
+                            </div>
+                        @endif
+                    @else
+                        <p class="login-to-review-message">
+                            {!! __('messages.login_to_review', ['link' => '<a href="'.route('signin').'">'.__('messages.login').'</a>']) !!}
+                        </p>
+                    @endauth
+                </div>
             </div>
         </div>
 
-        <!-- Related Products -->
+        {{-- ── Related Products ── --}}
         @if($relatedProducts && $relatedProducts->count())
             <div class="related-products">
-                <h2 class="section-title">{{ $settings['product_related_heading'] ?? __('messages.you_might_also_like') }}</h2>
+                <h2 class="section-title" data-reveal>
+                    {{ $settings['product_related_heading'] ?? __('messages.you_might_also_like') }}
+                </h2>
                 <div class="product-grid">
                     @foreach($relatedProducts as $related)
-                        <div class="product-card">
-                            <a href="{{ route('product.show', $related->slug) }}" class="product-link">
-                                <div class="product-img">
-                                    @if($related->image_url)
-                                        <img src="{{ asset($related->image_url) }}" alt="{{ $related->name }}">
-                                    @else
-                                        <i class="fa-solid fa-shirt"></i>
-                                    @endif
-                                </div>
-                                <div class="product-info">
-                                    <h3 class="product-name">{{ $related->name }}</h3>
-                                    <div class="product-price">{{ format_currency($related->price) }}</div>
-                                </div>
-                            </a>
-                        </div>
+                        @include('partials.product-card', ['product' => $related])
                     @endforeach
                 </div>
             </div>
         @endif
+
     </div>
 </div>
 @endsection
 
+@push('styles')
+<style>
+/* ── Animated star rating on product page ── */
+.product-stars {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin: 10px 0 14px;
+    font-size: 20px;
+}
+.product-stars .star-filled { color: var(--gold, #C9A96E); }
+.product-stars .star-empty  { color: #d1d5db; }
+.rating-value { font-size: 13px; color: #6b7280; margin-left: 4px; }
+
+/* ── Qty controls ── */
+.quantity-controls {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 1px solid var(--color-border, #e5e7eb);
+    border-radius: 8px;
+    overflow: hidden;
+    width: fit-content;
+}
+.qty-btn {
+    width: 38px; height: 38px;
+    border: none;
+    background: var(--color-surface, #f9fafb);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    transition: background .15s;
+    display: flex; align-items: center; justify-content: center;
+}
+.qty-btn:hover { background: var(--gold-light, #E8D5A3); }
+#quantity {
+    width: 52px; height: 38px;
+    border: none; border-left: 1px solid var(--color-border, #e5e7eb);
+    border-right: 1px solid var(--color-border, #e5e7eb);
+    text-align: center; font-size: 15px;
+    -moz-appearance: textfield;
+}
+#quantity::-webkit-inner-spin-button,
+#quantity::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+/* ── Tabs ── */
+.product-tabs {
+    grid-column: 1 / -1;
+    margin-top: 2.5rem;
+    border: 1px solid var(--color-border, #e5e7eb);
+    border-radius: 12px;
+    overflow: hidden;
+}
+.tabs-nav {
+    display: flex;
+    border-bottom: 1px solid var(--color-border, #e5e7eb);
+    background: var(--color-surface, #f9fafb);
+}
+.tab-btn {
+    padding: 13px 22px;
+    border: none; background: none;
+    font-size: 14px; font-weight: 500;
+    cursor: pointer;
+    color: var(--color-text-secondary, #6b7280);
+    border-bottom: 2px solid transparent;
+    transition: color .2s, border-color .2s;
+    display: flex; align-items: center; gap: 6px;
+}
+.tab-btn.active {
+    color: var(--color-text-primary, #111);
+    border-bottom-color: var(--gold, #C9A96E);
+}
+.tab-count {
+    background: var(--gold-light, #E8D5A3);
+    color: var(--gold-dark, #8B6914);
+    font-size: 11px; font-weight: 600;
+    padding: 1px 6px; border-radius: 10px;
+}
+.tab-panel { display: none; padding: 24px; }
+.tab-panel.active { display: block; }
+.tab-empty { color: var(--color-text-secondary, #6b7280); font-style: italic; }
+
+/* ── Average rating block ── */
+.average-rating {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    background: var(--color-surface, #f9fafb);
+    border-radius: 8px;
+    border: 1px solid var(--color-border, #e5e7eb);
+}
+.avg-number { font-size: 28px; font-weight: 700; color: var(--gold-dark, #8B6914); }
+.avg-stars .star-filled { color: var(--gold, #C9A96E); font-size: 18px; }
+.avg-stars .star-empty  { color: #d1d5db; font-size: 18px; }
+
+/* ── Review items ── */
+.review-item {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+.review-item:last-child { border-bottom: none; }
+.review-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+.review-stars .star-filled { color: var(--gold, #C9A96E); }
+.review-stars .star-empty  { color: #d1d5db; }
+.review-header small { color: #9ca3af; font-size: 12px; margin-left: auto; }
+
+/* ── Review form ── */
+.review-form {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--color-border, #e5e7eb);
+}
+.review-form textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border, #e5e7eb);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+    transition: border-color .2s;
+}
+.review-form textarea:focus {
+    outline: none;
+    border-color: var(--gold, #C9A96E);
+    box-shadow: 0 0 0 3px var(--gold-glow, rgba(201,169,110,.2));
+}
+</style>
+@endpush
+
 @push('scripts')
     @vite('resources/js/product.js')
+    <script>
+    (function () {
+
+        /* ── Tab switching ── */
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.dataset.tab;
+                document.querySelectorAll('.tab-btn').forEach(b => {
+                    b.classList.remove('active');
+                    b.setAttribute('aria-selected', 'false');
+                });
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                btn.setAttribute('aria-selected', 'true');
+                document.getElementById('tab-' + target)?.classList.add('active');
+            });
+        });
+
+        /* ── Qty controls with bounce ── */
+        const qtyInput  = document.getElementById('quantity');
+        const decreBtn  = document.getElementById('decreaseQty');
+        const increBtn  = document.getElementById('increaseQty');
+        if (qtyInput && decreBtn && increBtn) {
+            decreBtn.addEventListener('click', () => {
+                const v = parseInt(qtyInput.value) || 1;
+                if (v > 1) qtyInput.value = v - 1;
+            });
+            increBtn.addEventListener('click', () => {
+                const v   = parseInt(qtyInput.value) || 1;
+                const max = parseInt(qtyInput.max) || 999;
+                if (v < max) qtyInput.value = v + 1;
+            });
+        }
+
+        /* ── Buy now — sync qty then trigger cart add ── */
+        const buyNow = document.getElementById('buyNowBtn');
+        if (buyNow) {
+            buyNow.addEventListener('click', () => {
+                const addBtn = document.querySelector('.add-cart-btn:not(.disabled)');
+                if (!addBtn) return;
+                addBtn.dataset.quantity = qtyInput?.value || 1;
+                addBtn.click();
+            });
+        }
+
+    })();
+    </script>
 @endpush
