@@ -55,31 +55,78 @@
 
         /* Hero Section */
         .hero-section {
+            position: relative;
             text-align: center;
-            margin-bottom: 60px;
-            padding: 40px 0;
+            margin-bottom: 80px;
+            padding: 60px 40px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 50%, #f0f1f3 100%);
+            border-radius: 2.5rem;
+            border: 1px solid var(--color-border);
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+            animation: fadeInUp 0.8s ease;
         }
 
-        .hero-section h1 {
-            font-size: 48px;
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(var(--color-primary-rgb), 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(var(--color-accent-rgb), 0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .hero-section-inner {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-section-title {
+            font-size: 3.2rem;
+            font-weight: 900;
             color: var(--color-text);
-            margin-bottom: 20px;
-            font-weight: 700;
+            margin-bottom: 1.5rem;
+            line-height: 1.15;
+            letter-spacing: -0.02em;
         }
 
         .hero-tagline {
-            font-size: 20px;
+            font-size: 1.4rem;
             color: var(--color-primary);
-            margin-bottom: 25px;
-            font-weight: 500;
+            margin-bottom: 2rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
         }
 
         .hero-description {
-            font-size: 18px;
+            font-size: 1.1rem;
             color: var(--color-muted);
-            max-width: 700px;
+            max-width: 750px;
             margin: 0 auto;
             line-height: 1.8;
+            font-weight: 500;
+        }
+
+        .hero-section-decoration {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+            opacity: 0.5;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Mission & Vision */
@@ -428,8 +475,12 @@
 
         /* Responsive Design */
         @media (max-width: 992px) {
-            .hero-section h1 {
-                font-size: 40px;
+            .hero-section-title {
+                font-size: 2.8rem;
+            }
+
+            .hero-tagline {
+                font-size: 1.2rem;
             }
             
             .values-grid,
@@ -437,8 +488,6 @@
             .team-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
-            
-            
         }
 
         @media (max-width: 768px) {
@@ -446,16 +495,23 @@
                 padding: 40px 0 60px;
             }
             
-            .hero-section h1 {
-                font-size: 32px;
+            .hero-section {
+                padding: 40px 20px;
+                margin-bottom: 60px;
+            }
+
+            .hero-section-title {
+                font-size: 2.2rem;
+                margin-bottom: 1rem;
             }
             
             .hero-tagline {
-                font-size: 18px;
+                font-size: 1.1rem;
+                margin-bottom: 1.5rem;
             }
             
             .hero-description {
-                font-size: 16px;
+                font-size: 1rem;
             }
             
             .mission-vision {
@@ -495,6 +551,27 @@
             .cta-section h2 {
                 font-size: 24px;
             }
-            
+        }
+
+        @media (max-width: 640px) {
+            .hero-section {
+                padding: 30px 15px;
+                margin-bottom: 50px;
+            }
+
+            .hero-section-title {
+                font-size: 1.8rem;
+                margin-bottom: 0.8rem;
+            }
+
+            .hero-tagline {
+                font-size: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .hero-description {
+                font-size: 0.95rem;
+                line-height: 1.6;
+            }
             
         }

@@ -12,9 +12,12 @@
 
         <!-- Hero Section (fully bilingual via $about) -->
         <div class="hero-section">
-            <h1>{{ $about['hero']['title'] }}</h1>
-            <div class="hero-tagline">{{ $about['hero']['tagline'] }}</div>
-            <p class="hero-description">{{ $about['hero']['description'] }}</p>
+            <div class="hero-section-inner">
+                <h1 class="hero-section-title">{{ $about['hero']['title'] }}</h1>
+                <div class="hero-tagline">{{ $about['hero']['tagline'] }}</div>
+                <p class="hero-description">{{ $about['hero']['description'] }}</p>
+            </div>
+            <div class="hero-section-decoration"></div>
         </div>
 
         <!-- Mission & Vision -->

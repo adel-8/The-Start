@@ -13,20 +13,25 @@
             <div class="hero-slider">
                 @foreach($banners as $index => $banner)
                     <div class="hero-slide {{ $index === 0 ? 'active' : '' }}">
-                        <img src="{{ asset($banner->image_url) }}" alt="{{ $banner->title }}">
+                        <img src="{{ asset($banner->image_url) }}" alt="{{ $banner->title }}" class="hero-slide-img">
+                        <div class="hero-slide-overlay"></div>
+                        <div class="hero-slide-gradient"></div>
                         <div class="hero-content">
-                            <h1>{{ $banner->title }}</h1>
-                            @if($banner->link)
-                                <a href="{{ route('banner.click', $banner->id) }}" class="btn-hero" target="_blank">
-                                    {{ __('messages.shop_now') }} →
-                                </a>
-                            @endif
+                            <div class="hero-content-backdrop">
+                                <h1 class="hero-title">{{ $banner->title }}</h1>
+                                @if($banner->link)
+                                    <a href="{{ route('banner.click', $banner->id) }}" class="btn-hero btn-premium" target="_blank">
+                                        <span class="btn-text">{{ __('messages.shop_now') }}</span>
+                                        <span class="btn-icon">→</span>
+                                    </a>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 @endforeach
                 <div class="slider-dots">
                     @foreach($banners as $index => $banner)
-                        <span class="dot" data-slide="{{ $index }}"></span>
+                        <button class="dot {{ $index === 0 ? 'active' : '' }}" data-slide="{{ $index }}" aria-label="Go to slide {{ $index + 1 }}"></button>
                     @endforeach
                 </div>
             </div>
@@ -48,9 +53,16 @@
                     ?? __('messages.shop_now');
             @endphp
             <div class="hero-static">
-                <h1>{{ $heroTitle }}<br>{{ $heroSubtitle }}</h1>
-                <p>{{ $heroDesc }}</p>
-                <a href="{{ route('Shop') }}" class="btn-primary">{{ $heroButton }} →</a>
+                <div class="hero-static-bg"></div>
+                <div class="hero-static-content">
+                    <h1 class="hero-static-title">{{ $heroTitle }}<span class="title-accent">{{ $heroSubtitle }}</span></h1>
+                    <p class="hero-static-desc">{{ $heroDesc }}</p>
+                    <a href="{{ route('Shop') }}" class="btn-primary btn-premium">
+                        <span class="btn-text">{{ $heroButton }}</span>
+                        <span class="btn-icon">→</span>
+                    </a>
+                </div>
+                <div class="hero-decoration"></div>
             </div>
         @endif
 
