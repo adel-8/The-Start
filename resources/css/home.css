@@ -59,8 +59,8 @@ body {
 }
 
 .hero-content-backdrop {
-        background: rgba(0, 0, 0, 0.32);
-        backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
     padding: 3rem 2.5rem;
     border-radius: 1.5rem;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -624,7 +624,15 @@ body {
     }
 
     .hero-content {
-        width: 92%;
+        /* On small screens anchor the content to the right and occupy 60% width
+           so the background photo remains visible on the left. */
+        width: 60%;
+        max-width: none;
+        left: auto;
+        right: 4%;
+        top: 50%;
+        transform: translateY(-50%);
+        text-align: left;
     }
 
     .hero-content-backdrop {
