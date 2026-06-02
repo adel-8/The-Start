@@ -630,7 +630,7 @@ body {
         width: 60%;
         max-width: none;
         left: auto;
-        right: 4%;
+        right: 50%;
         top: 50%;
         transform: translateY(-50%);
         text-align: left;
