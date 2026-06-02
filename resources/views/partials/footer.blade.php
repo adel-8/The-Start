@@ -28,7 +28,7 @@
         ['label' => __('messages.privacy_policy'),   'url' => route('privacy')],
     ];
 
-    {{-- Bug fix: use date('Y') so copyright auto-updates every year --}}
+    
     $copyrightText = $settings['footer_copyright'] ?? '© ' . date('Y') . ' ' . $siteName . '. ' . __('messages.all_rights_reserved');
 
     $facebook  = $settings['facebook_url']  ?? '';
