@@ -1,4 +1,6 @@
 @php
+    use Illuminate\Support\Facades\Route;
+
     $locale = app()->getLocale();
     $siteName   = $settings['site_name'] ?? config('app.name');
     $siteEmail  = $settings['site_email'] ?? 'support@thestart.com';
@@ -28,7 +30,7 @@
  
     $customerLinks = is_array($customerLinks) ? $customerLinks : [
         ['label' => __('messages.returns'), 'url' => route('return.policy')],
-        ['label' => __('messages.order_tracking'), 'url' =>  route('orders.index')],
+        ['label' => __('messages.order_tracking'), 'url' => Route::has('orders.index') ? route('orders.index') : route('contact')],
         ['label' => __('messages.terms_conditions'), 'url' => route('terms')],
         ['label' => __('messages.privacy_policy'), 'url' => route('privacy')]
     ];

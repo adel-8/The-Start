@@ -157,5 +157,8 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
-    'aliases' => [],
+    'aliases' => [
+        'Route' => Illuminate\Support\Facades\Route::class,
+        'Str' => Illuminate\Support\Str::class,
+    ],
 ];

@@ -59,9 +59,8 @@ body {
 }
 
 .hero-content-backdrop {
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.32);
+        backdrop-filter: blur(10px);
     padding: 3rem 2.5rem;
     border-radius: 1.5rem;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -614,22 +613,23 @@ body {
 
 @media (max-width: 640px) {
     .hero-slider {
-        aspect-ratio: 9 / 14;
+        aspect-ratio: 16 / 10;
         margin-bottom: 1.5rem;
         border-radius: 1.5rem;
     }
 
     .hero-title {
-        font-size: 1.8rem;
+        font-size: 1.6rem;
         margin-bottom: 1rem;
     }
 
     .hero-content {
-        width: 95%;
+        width: 92%;
     }
 
     .hero-content-backdrop {
-        padding: 1.5rem 1rem;
+        backdrop-filter: blur(6px);
+        padding: 1.2rem 0.8rem;
         border-radius: 1rem;
     }
 
