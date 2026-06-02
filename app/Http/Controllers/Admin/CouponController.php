@@ -57,6 +57,9 @@ public function bulkDelete(Request $request)
 
         $data = $request->all();
         $data['active'] = $request->has('active') ? 1 : 0;
+        $data['min_order_amount'] = $request->filled('min_order_amount') ? $request->min_order_amount : 0;
+        $data['usage_limit_per_user'] = $request->filled('usage_limit_per_user') ? $request->usage_limit_per_user : null;
+        $data['total_usage_limit'] = $request->filled('total_usage_limit') ? $request->total_usage_limit : null;
 
         Coupon::create($data);
 
@@ -85,6 +88,9 @@ public function bulkDelete(Request $request)
 
         $data = $request->all();
         $data['active'] = $request->has('active') ? 1 : 0;
+        $data['min_order_amount'] = $request->filled('min_order_amount') ? $request->min_order_amount : 0;
+        $data['usage_limit_per_user'] = $request->filled('usage_limit_per_user') ? $request->usage_limit_per_user : null;
+        $data['total_usage_limit'] = $request->filled('total_usage_limit') ? $request->total_usage_limit : null;
 
         $coupon->update($data);
 
