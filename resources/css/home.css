@@ -125,7 +125,7 @@ body {
 
 @keyframes slideUp {
     from {
-        opacity: 0;
+        opacity: 0.5;
         transform: translate(-50%, 20px);
     }
     to {
@@ -220,7 +220,7 @@ body {
     position: absolute;
     inset: 0;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), transparent);
-    opacity: 0;
+    opacity: 0.5;
     transition: opacity 0.3s ease;
 }
 
@@ -250,7 +250,7 @@ body {
 
 @keyframes fadeInUp {
     from {
-        opacity: 0;
+        opacity: 0.5;
         transform: translateY(30px);
     }
     to {
@@ -554,7 +554,7 @@ body {
 
 @keyframes slideIn {
     from {
-        opacity: 0;
+        opacity: 0.5;
     }
     to {
         opacity: 1;
