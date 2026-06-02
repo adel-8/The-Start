@@ -411,21 +411,7 @@
             });
         });
 
-        /* ── Qty controls with bounce ── */
-        const qtyInput  = document.getElementById('quantity');
-        const decreBtn  = document.getElementById('decreaseQty');
-        const increBtn  = document.getElementById('increaseQty');
-        if (qtyInput && decreBtn && increBtn) {
-            decreBtn.addEventListener('click', () => {
-                const v = parseInt(qtyInput.value) || 1;
-                if (v > 1) qtyInput.value = v - 1;
-            });
-            increBtn.addEventListener('click', () => {
-                const v   = parseInt(qtyInput.value) || 1;
-                const max = parseInt(qtyInput.max) || 999;
-                if (v < max) qtyInput.value = v + 1;
-            });
-        }
+        
 
         /* ── Buy now — sync qty then trigger cart add ── */
         const buyNow = document.getElementById('buyNowBtn');
