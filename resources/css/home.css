@@ -629,7 +629,7 @@ body {
            so the background photo remains visible on the left. */
         width: 60%;
         max-width: none;
-        left: auto;
+        left: 50%;
         right: 50%;
         top: 50%;
         transform: translateY(-50%);
