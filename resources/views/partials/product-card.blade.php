@@ -11,15 +11,13 @@
                 @endif
             </div>
 
-            {{-- Hover overlay — slides up from bottom --}}
+            {{-- Hover overlay (desktop hover only — hidden on mobile) --}}
             <div class="product-card__hover-overlay">
                 @if($stock > 0)
-                    <button
-                        class="add-cart-btn overlay-cart-btn"
-                        data-id="{{ $product->id }}"
-                        data-name="{{ $product->name }}"
-                        data-price="{{ $product->price }}"
-                        aria-label="{{ __('messages.add_to_cart') }}: {{ $product->name }}">
+                    <button class="add-cart-btn overlay-cart-btn"
+                            data-id="{{ $product->id }}"
+                            data-name="{{ $product->name }}"
+                            data-price="{{ $product->price }}">
                         <i class="fas fa-shopping-bag"></i>
                         {{ __('messages.add_to_cart') }}
                     </button>
@@ -61,8 +59,8 @@
 
         <div class="product-price">{{ format_currency($product->price) }}</div>
 
-        {{-- Desktop fallback actions (visible when not hovering on touch devices) --}}
-        <div class="product-actions product-actions--fallback">
+        {{-- Always-visible action buttons ── shown on all screen sizes --}}
+        <div class="product-actions">
             @if($stock > 0)
                 <button class="add-cart-btn"
                         data-id="{{ $product->id }}"
@@ -73,7 +71,9 @@
             @else
                 <button class="add-cart-btn disabled" disabled>{{ __('messages.out_of_stock') }}</button>
             @endif
-            <button type="button" class="details-btn" data-slug="{{ $product->slug }}" data-name="{{ $product->name }}">
+            <button type="button" class="details-btn"
+                    data-slug="{{ $product->slug }}"
+                    data-name="{{ $product->name }}">
                 {{ __('messages.more_details') }}
             </button>
         </div>
@@ -83,18 +83,7 @@
 @once
 @push('styles')
 <style>
-/* ── Product card: hover lift + image zoom ── */
-.product-card {
-    position: relative;
-    overflow: hidden;
-    border-radius: 12px;
-    transition: box-shadow .3s ease, transform .3s ease;
-    background: var(--color-surface, #fff);
-}
-.product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 18px 44px rgba(0,0,0,0.13);
-}
+/* ── Card image zoom on hover ── */
 .product-card__image-wrapper {
     position: relative;
     overflow: hidden;
@@ -108,22 +97,44 @@
     transform: scale(1.07);
 }
 
-/* ── Hover overlay — slides up ── */
+/* ────────────────────────────────────────
+   HOVER OVERLAY
+   Desktop (hover capable): slides up on hover
+   Mobile / touch: completely hidden
+──────────────────────────────────────── */
 .product-card__hover-overlay {
     position: absolute;
     bottom: 0; left: 0; right: 0;
     background: rgba(10,10,10,0.86);
-    padding: 14px 16px;
-    transform: translateY(100%);
-    transition: transform .32s cubic-bezier(.22,.68,0,1.2);
+    padding: 12px 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-}
-.product-card:hover .product-card__hover-overlay {
-    transform: translateY(0);
+    /* Hidden by default on ALL devices */
+    transform: translateY(100%);
+    transition: transform .32s cubic-bezier(.22,.68,0,1.2);
+    /* Mobile: always keep hidden */
+    pointer-events: none;
 }
 
+/* Desktop hover only */
+@media (hover: hover) and (pointer: fine) {
+    .product-card__hover-overlay {
+        pointer-events: auto;
+    }
+    .product-card:hover .product-card__hover-overlay {
+        transform: translateY(0);
+    }
+}
+
+/* Mobile / touch: force hidden always, never slide up */
+@media (hover: none), (pointer: coarse) {
+    .product-card__hover-overlay {
+        display: none !important;
+    }
+}
+
+/* Overlay button style */
 .overlay-cart-btn {
     background: transparent;
     border: 1.5px solid var(--gold, #C9A96E);
@@ -132,13 +143,14 @@
     border-radius: 6px;
     cursor: pointer;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     transition: background .2s, color .2s;
+    font-family: inherit;
 }
 .overlay-cart-btn:hover {
     background: var(--gold, #C9A96E);
@@ -150,31 +162,34 @@
     font-weight: 500;
 }
 
-/* ── Rating stars gold ── */
+/* ── Rating stars ── */
 .product-card__rating {
     display: flex;
     align-items: center;
     gap: 2px;
-    margin-bottom: 4px;
     font-size: 14px;
 }
 .product-card__rating .star-filled { color: var(--gold, #C9A96E); }
 .product-card__rating .star-empty  { color: #d1d5db; }
-.rating-count { font-size: 11px; color: #6b7280; margin-left: 3px; }
-
-/* ── Hide fallback actions on true hover devices ── */
-@media (hover: hover) {
-    .product-actions--fallback { display: none; }
-}
-/* Touch devices: always show fallback */
-@media (hover: none) {
-    .product-card__hover-overlay { transform: translateY(0); }
+.rating-count {
+    font-size: 11px;
+    color: #6b7280;
+    margin-inline-start: 3px;
 }
 
-/* ── Badge gold for "new" ── */
-.badge-new {
-    background: var(--gold, #C9A96E);
-    color: #fff;
+/* ── Card lift ── */
+.product-card {
+    transition: box-shadow .3s ease, transform .3s ease;
+}
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 18px 44px rgba(0,0,0,0.13);
+}
+
+/* ── Mobile: tighter card layout ── */
+@media (max-width: 640px) {
+    .product-card__rating { font-size: 12px; }
+    .rating-count { font-size: 10px; }
 }
 </style>
 @endpush
