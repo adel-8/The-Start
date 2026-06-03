@@ -11,16 +11,16 @@ class ProductFactory extends Factory
     {
         return [
             'name' => $this->faker->words(3, true),
-            'slug' => $this->faker->slug,
+            'slug' => $this->faker->unique()->slug,
             'description' => $this->faker->paragraph,
-            'category_id' => Category::factory(),
-            'buy_price' => $this->faker->randomFloat(2, 10, 50),
-            'price' => $this->faker->randomFloat(2, 20, 200),
-            'stock' => $this->faker->numberBetween(0, 100),
-            'is_new' => $this->faker->boolean(20),
-            'bestseller' => $this->faker->boolean(20),
+            'category_id' => \App\Models\Category::factory(), // add this
+            'buy_price' => $this->faker->numberBetween(20, 80),
+            'price' => $this->faker->numberBetween(50, 200),
+            'stock' => $this->faker->numberBetween(0, 50),
+            'is_new' => false,
+            'bestseller' => false,
             'status' => 'active',
-            'image_url' => null,
+            'image_url' => '/storage/products/dummy.jpg',
         ];
     }
 }

@@ -16,6 +16,7 @@ class ReviewController extends Controller
 
     public function approve(Review $review)
     {
+        
         $review->update(['approved' => true]);
         return redirect()->route('admin.reviews.index')->with('success', 'Review approved.');
     }

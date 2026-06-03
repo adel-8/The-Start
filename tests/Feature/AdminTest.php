@@ -24,20 +24,23 @@ class AdminTest extends TestCase
 
     public function test_guest_cannot_access_admin()
     {
-        $this->get('/admin')->assertRedirect('/login');
+        $this->get('/admin')->assertRedirect('/signin');
     }
 
     public function test_admin_can_create_product()
     {
         $admin = User::factory()->create(['role_id' => 2]);
-        $this->actingAs($admin)->post('/admin/products', [
+        $this->actingAs($admin);
+
+        $response = $this->post('/admin/products', [
             'name' => 'Test Product',
             'slug' => 'test-product',
             'price' => 99.99,
             'buy_price' => 50.00,
             'status' => 'active',
-        ])->assertRedirect('/admin/products');
-
+            'image' => \Illuminate\Http\UploadedFile::fake()->image('product.jpg'),
+        ]);
+        $response->assertRedirect('/admin/products');
         $this->assertDatabaseHas('products', ['name' => 'Test Product']);
     }
 }
