@@ -186,6 +186,14 @@ class PaymentController extends Controller
                 'delivery_type'       => $checkoutData['delivery_type'] ?? 'home',
                 'notes'               => $checkoutData['notes'] ?? null,
             ]);
+            if ($couponId) {
+                $this->couponService->recordUsage(
+                    $couponId,
+                    $order->id,
+                    Auth::id(),
+                    $checkoutData['email'] ?? null
+                );
+            }
 
             // Store in session for guest access (critical!)
             session(['last_order_number' => $order->order_number]);

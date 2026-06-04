@@ -321,6 +321,14 @@ class StripeController extends Controller
                 'stripe_session_id'   => $stripeSessionId,
                 'notes'               => $checkoutData['notes'] ?? null,
             ]);
+            if ($couponId) {
+                $this->couponService->recordUsage(
+                    $couponId,
+                    $order->id,
+                    $userId,          // use the passed $userId, not Auth::id()
+                    $checkoutData['email'] ?? null
+                );
+            }
 
             foreach ($items as $item) {
                 OrderItem::create([

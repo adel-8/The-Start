@@ -52,7 +52,7 @@ test('it prevents regular user from creating a product', function () {
 });
 
 test('it allows admin to edit any user', function () {
-    $admin = User::factory()->create(['role_id' => 2]);
+    $admin = User::factory()->create(['role_id' => 1]);
     $user = User::factory()->create();
 
     // Make sure the admin has permission; check your routes/middleware.
@@ -62,7 +62,7 @@ test('it allows admin to edit any user', function () {
          ->assertRedirect();
 
     $this->assertEquals('Updated Name', $user->fresh()->name);
-})->skip('Admin user editing may require owner role (role_id = 1). Adjust if needed.');
+});
 
 test('it prevents regular user from editing another user', function () {
     $user1 = User::factory()->create(['role_id' => 3]);

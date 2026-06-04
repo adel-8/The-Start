@@ -62,7 +62,45 @@ test('it rejects an expired coupon', function () {
 });
 
 test('it respects coupon usage limit per user', function () {
-    $this->markTestSkipped('Implement usage tracking first (requires coupon_usages table).');
+    $user = User::factory()->create();
+    $product = Product::factory()->create(['price' => 100]);
+    
+    // Create coupon with limit 1 per user
+    $coupon = Coupon::factory()->create([
+        'code'                  => 'LIMIT1',
+        'discount_type'         => 'fixed',
+        'discount_value'        => 20,
+        'usage_limit_per_user'  => 1,
+        'valid_from'            => Carbon::yesterday(),
+        'valid_to'              => Carbon::tomorrow(),
+        'active'                => true,
+    ]);
+
+    // First order – should apply coupon
+    $this->actingAs($user);
+    $this->post('/cart/add', ['product_id' => $product->id, 'quantity' => 1]);
+    
+    $response1 = $this->postJson('/coupon/apply', ['code' => 'LIMIT1']);
+    $response1->assertJson(['success' => true]);
+    
+    // Complete checkout to record usage
+    $this->post('/checkout', [
+        'full_name'      => $user->name,
+        'email'          => $user->email,
+        'phone'          => '123456789',
+        'address'        => '123 Main St',
+        'city'           => 'Algiers',
+        'region'         => 'Algiers',
+        'payment_method' => 'cash_on_delivery',
+        'coupon_code'    => 'LIMIT1',
+    ])->assertRedirect();
+
+    // Clear cart for second attempt
+    $this->post('/cart/add', ['product_id' => $product->id, 'quantity' => 1]);
+    
+    // Second attempt – should fail because limit reached
+    $response2 = $this->postJson('/coupon/apply', ['code' => 'LIMIT1']);
+    $response2->assertJson(['success' => false, 'message' => 'You have already reached the usage limit for this coupon.']);
 });
 
 test('it requires minimum order amount for coupon', function () {

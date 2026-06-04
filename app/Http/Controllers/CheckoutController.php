@@ -254,6 +254,14 @@ class CheckoutController extends Controller
                 'delivery_type'       => $request->delivery_type ?? 'home',
                 'notes'               => $request->notes,
             ]);
+            if ($couponId) {
+                $this->couponService->recordUsage(
+                    $couponId,
+                    $order->id,
+                    Auth::id(),
+                    $request->email
+                );
+            }
 
             foreach ($items as $item) {
                 OrderItem::create([

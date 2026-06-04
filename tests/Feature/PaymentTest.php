@@ -6,6 +6,8 @@ use App\Models\Address;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Http;
+
 
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -73,19 +75,55 @@ test('COD checkout with saved address for logged-in user', function () {
     ]);
 });
 
-test('BaridiMob payment with proof upload (requires GD)', function () {
-    $this->markTestSkipped('BaridiMob image upload test needs GD extension and proper mocking.');
-    // Full test would require session data and a file upload.
-    // If you want to run it, ensure GD is installed and unskip.
+
+test('BaridiMob payment with proof upload', function () {
+    Storage::fake('local');
+    $product = Product::factory()->create(['stock' => 10]);
+    $this->post('/cart/add', ['product_id' => $product->id, 'quantity' => 1]);
+
+    // First submit checkout with baridimob
+    $response = $this->post('/checkout', [
+        'full_name'      => 'Jane Doe',
+        'email'          => 'jane@example.com',
+        'phone'          => '987654321',
+        'address'        => '456 Elm St',
+        'city'           => 'Oran',
+        'region'         => 'Oran',
+        'payment_method' => 'baridimob',
+    ]);
+    $response->assertRedirect(route('payment.baridimob'));
+
+    // Then upload proof
+    $proof = UploadedFile::fake()->image('proof.jpg');
+    $uploadResponse = $this->post('/payment/baridimob/upload', ['proof' => $proof]);
+    $uploadResponse->assertRedirect();
+    $this->assertDatabaseHas('orders', ['guest_name' => 'Jane Doe', 'payment_method' => 'baridimob']);
+    $order = \App\Models\Order::where('guest_name', 'Jane Doe')->first();
+    $this->assertNotNull($order->payment_proof);
+    Storage::disk('local')->assertExists($order->payment_proof);
 });
 
 test('Stripe redirects to checkout session - mocked', function () {
-    $this->markTestSkipped('Stripe tests require mocking the Stripe API. Implement with Http::fake() or a dedicated test.');
-    // Example of how you could test later:
-    // Http::fake([...]);
-    // $product = Product::factory()->create(['price' => 50]);
-    // $this->post('/cart/add', ['product_id' => $product->id, 'quantity' => 1]);
-    // $response = $this->post('/checkout', [ ... 'payment_method' => 'stripe' ]);
-    // $response->assertRedirect();
-    // $this->assertNotNull(Session::get('stripe_session_id'));
+    Http::fake([
+        'api.stripe.com/v1/checkout/sessions' => Http::response([
+            'id' => 'cs_test_123',
+            'url' => 'https://checkout.stripe.com/pay/cs_test_123',
+        ], 200),
+    ]);
+
+    $product = Product::factory()->create(['price' => 50]);
+    $this->post('/cart/add', ['product_id' => $product->id, 'quantity' => 1]);
+
+    $response = $this->post('/checkout', [
+        'full_name'      => 'Stripe User',
+        'email'          => 'stripe@example.com',
+        'phone'          => '111222333',
+        'address'        => '789 Pine St',
+        'city'           => 'Constantine',
+        'region'         => 'Constantine',
+        'payment_method' => 'stripe',
+    ]);
+
+    $response->assertRedirect();
+    $this->assertNotNull(Session::get('stripe_session_id'));
 });
