@@ -110,6 +110,9 @@ test('guest checkout creates order with correct guest fields', function () {
     $product = Product::factory()->create();
     $this->post('/cart/add', ['product_id' => $product->id, 'quantity' => 1]);
 
+    // Verify cart is not empty
+    $this->assertNotEmpty(session('cart'), 'Cart is empty before checkout');
+
     $this->post('/checkout', [
         'full_name'      => 'Guest User',
         'email'          => 'guest@example.com',
