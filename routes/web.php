@@ -122,12 +122,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/analytics/data', [DashboardController::class, 'getAnalyticsData'])->name('analytics.data');
 
     // Products
-    Route::resource('products', AdminProductController::class);
     Route::delete('/products/bulk-delete', [AdminProductController::class, 'bulkDelete'])->name('products.bulk-delete');
+    Route::resource('products', AdminProductController::class);
 
     // Categories
-    Route::resource('categories', CategoryController::class);
     Route::delete('/categories/bulk-delete', [CategoryController::class, 'bulkDelete'])->name('categories.bulk-delete');
+    Route::resource('categories', CategoryController::class);
     Route::get('/categories/{category}/move/{direction}', [CategoryController::class, 'move'])->name('categories.move');
 
     // Orders
@@ -135,12 +135,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/orders/{order}/payment', [AdminOrderController::class, 'updatePaymentStatus'])->name('orders.payment.update');
     
     // Coupons
-    Route::resource('coupons', CouponController::class);
     Route::delete('/coupons/bulk-delete', [CouponController::class, 'bulkDelete'])->name('coupons.bulk-delete');
+    Route::resource('coupons', CouponController::class);
 
     // Banners
-    Route::resource('banners', BannerController::class);
     Route::delete('/banners/bulk-delete', [BannerController::class, 'bulkDelete'])->name('banners.bulk-delete');
+    Route::resource('banners', BannerController::class);
     Route::get('/banners/{banner}/move/{direction}', [BannerController::class, 'move'])->name('banners.move');
 
     // Contact messages
