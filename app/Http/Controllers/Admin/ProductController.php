@@ -38,7 +38,6 @@ class ProductController extends Controller
         }
 
         $products = $query->orderBy('id', 'desc')->paginate(20);
-
         return view('admin.products.index', compact('products'));
     }
 
@@ -74,7 +73,7 @@ class ProductController extends Controller
             $data['image_url'] = '/storage/' . $path;
         }
 
-        // Create product first
+        // Create product
         $product = Product::create($data);
 
         // Handle variations (colors)
@@ -102,7 +101,6 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $categories = Category::orderBy('name')->get();
-        // Load variations for the edit form
         $product->load('variations');
         return view('admin.products.edit', compact('product', 'categories'));
     }
@@ -128,6 +126,7 @@ class ProductController extends Controller
         $data['is_new'] = $request->has('is_new');
         $data['bestseller'] = $request->has('bestseller');
 
+        // Handle main image
         if ($request->hasFile('image')) {
             if ($product->image_url) {
                 $oldPath = str_replace('/storage/', '', $product->image_url);
@@ -140,35 +139,39 @@ class ProductController extends Controller
         // Update product basic info
         $product->update($data);
 
-        // Handle variations (colors)
-        if ($request->has('variation_ids')) {
-            $keepIds = $request->variation_ids;
-            $product->variations()->whereNotIn('id', $keepIds)->delete();
-        } else {
-            $product->variations()->delete();
-        }
+        // --- Handle color variations ---
+        // Get existing variation IDs from the form
+        $existingIds = $request->input('variation_ids', []);
+        
+        // Delete variations that were removed (not in the list)
+        $product->variations()->whereNotIn('id', $existingIds)->delete();
 
-        if ($request->has('variations')) {
-            foreach ($request->variations as $key => $varData) {
-                $variation = $product->variations()->updateOrCreate(
-                    ['id' => $request->variation_ids[$key] ?? null],
-                    [
-                        'sku'             => $varData['sku'] ?? null,
-                        'attribute_name'  => 'color',
-                        'attribute_value' => $varData['attribute_value'],
-                        'price'           => $varData['price'] ?? null,
-                        'stock'           => $varData['stock'] ?? 0,
-                    ]
-                );
+        // Prepare variations data
+        $variations = $request->input('variations', []);
+        
+        foreach ($variations as $index => $varData) {
+            $variationId = $existingIds[$index] ?? null;
+            
+            // Update or create variation
+            $variation = $product->variations()->updateOrCreate(
+                ['id' => $variationId],
+                [
+                    'sku'             => $varData['sku'] ?? null,
+                    'attribute_name'  => 'color',
+                    'attribute_value' => $varData['attribute_value'],
+                    'price'           => $varData['price'] ?? null,
+                    'stock'           => $varData['stock'] ?? 0,
+                ]
+            );
 
-                if ($request->hasFile("variation_images.{$key}")) {
-                    if ($variation->image_url) {
-                        $oldPath = str_replace('/storage/', '', $variation->image_url);
-                        Storage::disk('public')->delete($oldPath);
-                    }
-                    $path = $request->file("variation_images.{$key}")->store('product_variations', 'public');
-                    $variation->update(['image_url' => '/storage/' . $path]);
+            // Handle variation image upload
+            if ($request->hasFile("variation_images.{$index}")) {
+                if ($variation->image_url) {
+                    $oldPath = str_replace('/storage/', '', $variation->image_url);
+                    Storage::disk('public')->delete($oldPath);
                 }
+                $path = $request->file("variation_images.{$index}")->store('product_variations', 'public');
+                $variation->update(['image_url' => '/storage/' . $path]);
             }
         }
 
