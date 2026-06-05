@@ -106,84 +106,85 @@ class ProductController extends Controller
         return view('admin.products.edit', compact('product', 'categories'));
     }
 
-   public function update(Request $request, Product $product)
+  public function update(Request $request, Product $product)
 {
-    try {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:products,slug,' . $product->id,
-            'description' => 'nullable|string',
-            'category_id' => 'nullable|exists:categories,id',
-            'buy_price' => 'required|numeric|min:0',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'nullable|integer|min:0',
-            'is_new' => 'nullable|boolean',
-            'bestseller' => 'nullable|boolean',
-            'status' => 'required|in:active,inactive',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-        ]);
+    // Basic product validation
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'slug' => 'required|string|max:255|unique:products,slug,' . $product->id,
+        'description' => 'nullable|string',
+        'category_id' => 'nullable|exists:categories,id',
+        'buy_price' => 'required|numeric|min:0',
+        'price' => 'required|numeric|min:0',
+        'stock' => 'nullable|integer|min:0',
+        'is_new' => 'nullable|boolean',
+        'bestseller' => 'nullable|boolean',
+        'status' => 'required|in:active,inactive',
+        'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    ]);
 
-        $data = $request->only(['name', 'slug', 'description', 'category_id', 'buy_price', 'price', 'stock', 'status']);
-        $data['slug'] = Str::slug($request->slug);
-        $data['is_new'] = $request->has('is_new');
-        $data['bestseller'] = $request->has('bestseller');
+    // Prepare product data
+    $data = $request->only(['name', 'slug', 'description', 'category_id', 'buy_price', 'price', 'stock', 'status']);
+    $data['slug'] = Str::slug($request->slug);
+    $data['is_new'] = $request->has('is_new');
+    $data['bestseller'] = $request->has('bestseller');
 
-        if ($request->hasFile('image')) {
-            if ($product->image_url) {
-                $oldPath = str_replace('/storage/', '', $product->image_url);
+    // Handle main image
+    if ($request->hasFile('image')) {
+        if ($product->image_url) {
+            $oldPath = str_replace('/storage/', '', $product->image_url);
+            Storage::disk('public')->delete($oldPath);
+        }
+        $path = $request->file('image')->store('products', 'public');
+        $data['image_url'] = '/storage/' . $path;
+    }
+
+    // Update product
+    $product->update($data);
+
+    // ========== HANDLE VARIATIONS ==========
+    // Get existing variation IDs from form
+    $existingIds = $request->input('variation_ids', []);
+    $variations = $request->input('variations', []);
+
+    // Delete variations that are not in the submitted list
+    $product->variations()->whereNotIn('id', $existingIds)->delete();
+
+    // Loop through variations and update/create
+    foreach ($variations as $index => $varData) {
+        // Skip empty rows (if color name is empty)
+        if (empty($varData['attribute_value'])) {
+            continue;
+        }
+
+        $variationId = $existingIds[$index] ?? null;
+
+        $variation = $product->variations()->updateOrCreate(
+            ['id' => $variationId],
+            [
+                'sku'             => $varData['sku'] ?? null,
+                'attribute_name'  => 'color',
+                'attribute_value' => $varData['attribute_value'],
+                'price'           => !empty($varData['price']) ? $varData['price'] : null,
+                'stock'           => $varData['stock'] ?? 0,
+            ]
+        );
+
+        // Handle variation image upload
+        if ($request->hasFile("variation_images.{$index}")) {
+            if ($variation->image_url) {
+                $oldPath = str_replace('/storage/', '', $variation->image_url);
                 Storage::disk('public')->delete($oldPath);
             }
-            $path = $request->file('image')->store('products', 'public');
-            $data['image_url'] = '/storage/' . $path;
+            $path = $request->file("variation_images.{$index}")->store('product_variations', 'public');
+            $variation->update(['image_url' => '/storage/' . $path]);
         }
-
-        $product->update($data);
-
-        // Process variations
-        $existingIds = $request->input('variation_ids', []);
-        $variations = $request->input('variations', []);
-
-        // Delete removed variations
-        if ($product->variations()->exists()) {
-            $product->variations()->whereNotIn('id', $existingIds)->delete();
-        }
-
-        // Update or create variations
-        foreach ($variations as $index => $varData) {
-            $variationId = $existingIds[$index] ?? null;
-            $variation = $product->variations()->updateOrCreate(
-                ['id' => $variationId],
-                [
-                    'sku'             => $varData['sku'] ?? null,
-                    'attribute_name'  => 'color',
-                    'attribute_value' => $varData['attribute_value'],
-                    'price'           => $varData['price'] ?? null,
-                    'stock'           => $varData['stock'] ?? 0,
-                ]
-            );
-
-            // Handle image upload for this variation
-            if ($request->hasFile("variation_images.{$index}")) {
-                // Delete old image if exists
-                if ($variation->image_url) {
-                    $oldPath = str_replace('/storage/', '', $variation->image_url);
-                    Storage::disk('public')->delete($oldPath);
-                }
-                $path = $request->file("variation_images.{$index}")->store('product_variations', 'public');
-                $variation->update(['image_url' => '/storage/' . $path]);
-            }
-        }
-
-        return redirect()->route('admin.products.index')->with('success', 'Product updated successfully.');
-
-    } catch (\Exception $e) {
-        Log::error('Product update error: ' . $e->getMessage(), [
-            'trace' => $e->getTraceAsString(),
-            'request_data' => $request->except(['_token', '_method'])
-        ]);
-
-        return back()->withInput()->with('error', 'Update failed: ' . $e->getMessage());
     }
+
+    // Log success for debugging
+    Log::info('Product updated successfully', ['product_id' => $product->id, 'variations_count' => $product->variations()->count()]);
+
+    return redirect()->route('admin.products.index')->with('success', 'Product updated successfully.');
 }
 
     public function destroy(Product $product)
