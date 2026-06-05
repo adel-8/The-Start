@@ -107,76 +107,73 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:products,slug,' . $product->id,
-            'description' => 'nullable|string',
-            'category_id' => 'nullable|exists:categories,id',
-            'buy_price' => 'required|numeric|min:0',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'nullable|integer|min:0',
-            'is_new' => 'nullable|boolean',
-            'bestseller' => 'nullable|boolean',
-            'status' => 'required|in:active,inactive',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-        ]);
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'slug' => 'required|string|max:255|unique:products,slug,' . $product->id,
+                'description' => 'nullable|string',
+                'category_id' => 'nullable|exists:categories,id',
+                'buy_price' => 'required|numeric|min:0',
+                'price' => 'required|numeric|min:0',
+                'stock' => 'nullable|integer|min:0',
+                'is_new' => 'nullable|boolean',
+                'bestseller' => 'nullable|boolean',
+                'status' => 'required|in:active,inactive',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            ]);
 
-        $data = $request->all();
-        $data['slug'] = Str::slug($request->slug);
-        $data['is_new'] = $request->has('is_new');
-        $data['bestseller'] = $request->has('bestseller');
+            $data = $request->all();
+            $data['slug'] = Str::slug($request->slug);
+            $data['is_new'] = $request->has('is_new');
+            $data['bestseller'] = $request->has('bestseller');
 
-        // Handle main image
-        if ($request->hasFile('image')) {
-            if ($product->image_url) {
-                $oldPath = str_replace('/storage/', '', $product->image_url);
-                Storage::disk('public')->delete($oldPath);
-            }
-            $path = $request->file('image')->store('products', 'public');
-            $data['image_url'] = '/storage/' . $path;
-        }
-
-        // Update product basic info
-        $product->update($data);
-
-        // --- Handle color variations ---
-        // Get existing variation IDs from the form
-        $existingIds = $request->input('variation_ids', []);
-        
-        // Delete variations that were removed (not in the list)
-        $product->variations()->whereNotIn('id', $existingIds)->delete();
-
-        // Prepare variations data
-        $variations = $request->input('variations', []);
-        
-        foreach ($variations as $index => $varData) {
-            $variationId = $existingIds[$index] ?? null;
-            
-            // Update or create variation
-            $variation = $product->variations()->updateOrCreate(
-                ['id' => $variationId],
-                [
-                    'sku'             => $varData['sku'] ?? null,
-                    'attribute_name'  => 'color',
-                    'attribute_value' => $varData['attribute_value'],
-                    'price'           => $varData['price'] ?? null,
-                    'stock'           => $varData['stock'] ?? 0,
-                ]
-            );
-
-            // Handle variation image upload
-            if ($request->hasFile("variation_images.{$index}")) {
-                if ($variation->image_url) {
-                    $oldPath = str_replace('/storage/', '', $variation->image_url);
+            if ($request->hasFile('image')) {
+                if ($product->image_url) {
+                    $oldPath = str_replace('/storage/', '', $product->image_url);
                     Storage::disk('public')->delete($oldPath);
                 }
-                $path = $request->file("variation_images.{$index}")->store('product_variations', 'public');
-                $variation->update(['image_url' => '/storage/' . $path]);
+                $path = $request->file('image')->store('products', 'public');
+                $data['image_url'] = '/storage/' . $path;
             }
-        }
 
-        return redirect()->route('admin.products.index')
-            ->with('success', 'Product updated successfully.');
+            $product->update($data);
+
+            // --- Variations ---
+            $existingIds = $request->input('variation_ids', []);
+            $product->variations()->whereNotIn('id', $existingIds)->delete();
+
+            $variations = $request->input('variations', []);
+            foreach ($variations as $index => $varData) {
+                $variationId = $existingIds[$index] ?? null;
+                $variation = $product->variations()->updateOrCreate(
+                    ['id' => $variationId],
+                    [
+                        'sku'             => $varData['sku'] ?? null,
+                        'attribute_name'  => 'color',
+                        'attribute_value' => $varData['attribute_value'],
+                        'price'           => $varData['price'] ?? null,
+                        'stock'           => $varData['stock'] ?? 0,
+                    ]
+                );
+
+                if ($request->hasFile("variation_images.{$index}")) {
+                    if ($variation->image_url) {
+                        $oldPath = str_replace('/storage/', '', $variation->image_url);
+                        Storage::disk('public')->delete($oldPath);
+                    }
+                    $path = $request->file("variation_images.{$index}")->store('product_variations', 'public');
+                    $variation->update(['image_url' => '/storage/' . $path]);
+                }
+            }
+
+            return redirect()->route('admin.products.index')->with('success', 'Product updated successfully.');
+        } catch (\Exception $e) {
+            Log::error('Product update failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+            return back()->with('error', 'Update failed: ' . $e->getMessage())->withInput();
+        }
     }
 
     public function destroy(Product $product)
