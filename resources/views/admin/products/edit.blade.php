@@ -95,6 +95,7 @@
         </div>
     </div>
 
+    {{-- Current main image --}}
     <div class="form-group">
         <label>{{ __('admin.current_image') }}</label>
         <div class="current-image">
@@ -118,7 +119,7 @@
         <img id="imagePreview" style="max-width: 200px; max-height: 200px;">
     </div>
 
-    {{-- ========== Color Variations Section ========== --}}
+    {{-- ========== COLOR VARIATIONS (INSIDE THE FORM) ========== --}}
     <div class="form-group">
         <h3>{{ __('admin.color_variations') }}</h3>
         <div id="variations-container">
@@ -277,7 +278,7 @@
 
 @push('scripts')
 <script>
-    // Image preview
+    // Image preview for main product image
     const imageInput = document.getElementById('image');
     const previewContainer = document.getElementById('imagePreviewContainer');
     const previewImage = document.getElementById('imagePreview');
@@ -301,6 +302,7 @@
     // Variation management
     const variationsContainer = document.getElementById('variations-container');
     const addVariationBtn = document.getElementById('addVariation');
+    // Count existing variations to start indexing from that number
     let variationCount = variationsContainer ? variationsContainer.children.length : 0;
 
     if (variationsContainer && addVariationBtn) {
@@ -336,7 +338,7 @@
             newRow.querySelector('.remove-variation').addEventListener('click', () => newRow.remove());
         });
 
-        // Remove button for existing rows
+        // Attach remove event to existing variation rows
         document.querySelectorAll('.remove-variation').forEach(btn => {
             btn.addEventListener('click', function() {
                 this.closest('.variation-row').remove();
