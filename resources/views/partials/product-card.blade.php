@@ -1,17 +1,24 @@
 <div class="product-card" data-reveal>
-    @php $stock = $product->stock ?? 0; @endphp
+    @php
+        $stock = $product->stock ?? 0;
+        $displayImage = $product->image_url;
+        $firstColor = $product->variations->firstWhere('attribute_name', 'color');
+        if ($firstColor && $firstColor->image_url) {
+            $displayImage = $firstColor->image_url;
+        }
+    @endphp
 
     <a href="{{ route('product.show', $product->slug) }}" class="product-card__image-link">
         <div class="product-card__image-wrapper">
             <div class="product-img">
-                @if($product->image_url)
-                    <img src="{{ asset($product->image_url) }}" alt="{{ $product->name }}" loading="lazy">
+                @if($displayImage)
+                    <img src="{{ asset($displayImage) }}" alt="{{ $product->name }}" loading="lazy">
                 @else
                     <i class="fa-solid fa-clock"></i>
                 @endif
             </div>
 
-            {{-- Hover overlay (desktop hover only — hidden on mobile) --}}
+            {{-- Hover overlay (desktop only) --}}
             <div class="product-card__hover-overlay">
                 @if($stock > 0)
                     <button class="add-cart-btn overlay-cart-btn"
@@ -59,7 +66,7 @@
 
         <div class="product-price">{{ format_currency($product->price) }}</div>
 
-        {{-- Always-visible action buttons ── shown on all screen sizes --}}
+        {{-- Always-visible action buttons --}}
         <div class="product-actions">
             @if($stock > 0)
                 <button class="add-cart-btn"
@@ -97,11 +104,7 @@
     transform: scale(1.07);
 }
 
-/* ────────────────────────────────────────
-   HOVER OVERLAY
-   Desktop (hover capable): slides up on hover
-   Mobile / touch: completely hidden
-──────────────────────────────────────── */
+/* HOVER OVERLAY – desktop only */
 .product-card__hover-overlay {
     position: absolute;
     bottom: 0; left: 0; right: 0;
@@ -110,14 +113,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Hidden by default on ALL devices */
     transform: translateY(100%);
     transition: transform .32s cubic-bezier(.22,.68,0,1.2);
-    /* Mobile: always keep hidden */
     pointer-events: none;
 }
-
-/* Desktop hover only */
 @media (hover: hover) and (pointer: fine) {
     .product-card__hover-overlay {
         pointer-events: auto;
@@ -126,15 +125,11 @@
         transform: translateY(0);
     }
 }
-
-/* Mobile / touch: force hidden always, never slide up */
 @media (hover: none), (pointer: coarse) {
     .product-card__hover-overlay {
         display: none !important;
     }
 }
-
-/* Overlay button style */
 .overlay-cart-btn {
     background: transparent;
     border: 1.5px solid var(--gold, #C9A96E);
@@ -150,7 +145,6 @@
     justify-content: center;
     gap: 8px;
     transition: background .2s, color .2s;
-    font-family: inherit;
 }
 .overlay-cart-btn:hover {
     background: var(--gold, #C9A96E);
@@ -162,7 +156,7 @@
     font-weight: 500;
 }
 
-/* ── Rating stars ── */
+/* Rating stars */
 .product-card__rating {
     display: flex;
     align-items: center;
@@ -177,7 +171,7 @@
     margin-inline-start: 3px;
 }
 
-/* ── Card lift ── */
+/* Card lift */
 .product-card {
     transition: box-shadow .3s ease, transform .3s ease;
 }
@@ -186,7 +180,7 @@
     box-shadow: 0 18px 44px rgba(0,0,0,0.13);
 }
 
-/* ── Mobile: tighter card layout ── */
+/* Mobile adjustments */
 @media (max-width: 640px) {
     .product-card__rating { font-size: 12px; }
     .rating-count { font-size: 10px; }

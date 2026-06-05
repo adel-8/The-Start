@@ -5,34 +5,30 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductVariation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+
 class ProductController extends Controller
 {
-
-
-
     public function index(Request $request)
     {
         $query = Product::with('category');
 
-        // Search by name or slug
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                ->orWhere('slug', 'like', "%{$search}%");
+                  ->orWhere('slug', 'like', "%{$search}%");
             });
         }
 
-        // Filter by status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // Filter by stock status
         if ($request->filled('stock_status')) {
             if ($request->stock_status == 'low') {
                 $query->where('stock', '>', 0)->where('stock', '<=', 5);
@@ -70,16 +66,34 @@ class ProductController extends Controller
 
         $data = $request->all();
         $data['slug'] = Str::slug($request->slug);
+        $data['is_new'] = $request->has('is_new');
+        $data['bestseller'] = $request->has('bestseller');
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('products', 'public');
             $data['image_url'] = '/storage/' . $path;
         }
 
-        $data['is_new'] = $request->has('is_new');
-        $data['bestseller'] = $request->has('bestseller');
+        // Create product first
+        $product = Product::create($data);
 
-        Product::create($data);
+        // Handle variations (colors)
+        if ($request->has('variations')) {
+            foreach ($request->variations as $key => $varData) {
+                $variation = $product->variations()->create([
+                    'sku'             => $varData['sku'] ?? null,
+                    'attribute_name'  => 'color',
+                    'attribute_value' => $varData['attribute_value'],
+                    'price'           => $varData['price'] ?? null,
+                    'stock'           => $varData['stock'] ?? 0,
+                ]);
+
+                if ($request->hasFile("variation_images.{$key}")) {
+                    $path = $request->file("variation_images.{$key}")->store('product_variations', 'public');
+                    $variation->update(['image_url' => '/storage/' . $path]);
+                }
+            }
+        }
 
         return redirect()->route('admin.products.index')
             ->with('success', 'Product created successfully.');
@@ -88,6 +102,8 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $categories = Category::orderBy('name')->get();
+        // Load variations for the edit form
+        $product->load('variations');
         return view('admin.products.edit', compact('product', 'categories'));
     }
 
@@ -109,9 +125,10 @@ class ProductController extends Controller
 
         $data = $request->all();
         $data['slug'] = Str::slug($request->slug);
+        $data['is_new'] = $request->has('is_new');
+        $data['bestseller'] = $request->has('bestseller');
 
         if ($request->hasFile('image')) {
-            // Delete old image if exists
             if ($product->image_url) {
                 $oldPath = str_replace('/storage/', '', $product->image_url);
                 Storage::disk('public')->delete($oldPath);
@@ -120,10 +137,40 @@ class ProductController extends Controller
             $data['image_url'] = '/storage/' . $path;
         }
 
-        $data['is_new'] = $request->has('is_new');
-        $data['bestseller'] = $request->has('bestseller');
-
+        // Update product basic info
         $product->update($data);
+
+        // Handle variations (colors)
+        if ($request->has('variation_ids')) {
+            $keepIds = $request->variation_ids;
+            $product->variations()->whereNotIn('id', $keepIds)->delete();
+        } else {
+            $product->variations()->delete();
+        }
+
+        if ($request->has('variations')) {
+            foreach ($request->variations as $key => $varData) {
+                $variation = $product->variations()->updateOrCreate(
+                    ['id' => $request->variation_ids[$key] ?? null],
+                    [
+                        'sku'             => $varData['sku'] ?? null,
+                        'attribute_name'  => 'color',
+                        'attribute_value' => $varData['attribute_value'],
+                        'price'           => $varData['price'] ?? null,
+                        'stock'           => $varData['stock'] ?? 0,
+                    ]
+                );
+
+                if ($request->hasFile("variation_images.{$key}")) {
+                    if ($variation->image_url) {
+                        $oldPath = str_replace('/storage/', '', $variation->image_url);
+                        Storage::disk('public')->delete($oldPath);
+                    }
+                    $path = $request->file("variation_images.{$key}")->store('product_variations', 'public');
+                    $variation->update(['image_url' => '/storage/' . $path]);
+                }
+            }
+        }
 
         return redirect()->route('admin.products.index')
             ->with('success', 'Product updated successfully.');
@@ -131,24 +178,29 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
-        // Delete image if exists
         if ($product->image_url) {
             $oldPath = str_replace('/storage/', '', $product->image_url);
             Storage::disk('public')->delete($oldPath);
         }
+        // Delete variation images as well
+        foreach ($product->variations as $variation) {
+            if ($variation->image_url) {
+                $oldPath = str_replace('/storage/', '', $variation->image_url);
+                Storage::disk('public')->delete($oldPath);
+            }
+        }
         $product->delete();
         return redirect()->route('admin.products.index')
-            ->with('success', 'Product deleted.');
+            ->with('success', 'Product deleted successfully.');
     }
-    
 
-public function bulkDelete(Request $request)
-{
-    $ids = $request->input('ids');
-    if ($ids && count($ids) > 0) {
-        Product::whereIn('id', $ids)->delete();
-        return redirect()->route('admin.products.index')->with('success', __('admin.products_deleted'));
+    public function bulkDelete(Request $request)
+    {
+        $ids = $request->input('ids');
+        if ($ids && count($ids) > 0) {
+            Product::whereIn('id', $ids)->delete();
+            return redirect()->route('admin.products.index')->with('success', __('admin.products_deleted'));
+        }
+        return redirect()->route('admin.products.index')->with('error', __('admin.no_products_selected'));
     }
-    return redirect()->route('admin.products.index')->with('error', __('admin.no_products_selected'));
-}
 }

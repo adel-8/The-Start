@@ -12,18 +12,19 @@ class ProductController extends Controller
      */
     public function show($slug)
     {
-        // Find the active product by slug, or fail with 404
+        // Find active product with reviews and variations (colors)
         $product = Product::where('slug', $slug)
                           ->where('status', 'active')
-                          ->with('reviews') // eager load reviews (if needed in view)
+                          ->with(['reviews', 'variations'])
                           ->firstOrFail();
 
-        // Get related products: same category, exclude current product, limit 4
+        // Get related products (also eager load variations for product cards)
         $relatedProducts = Product::where('status', 'active')
                                   ->where('id', '!=', $product->id)
                                   ->when($product->category_id, function ($query) use ($product) {
                                       $query->where('category_id', $product->category_id);
                                   })
+                                  ->with('variations')
                                   ->inRandomOrder()
                                   ->limit(4)
                                   ->get();

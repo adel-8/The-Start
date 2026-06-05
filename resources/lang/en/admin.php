@@ -530,4 +530,16 @@ return [
     'payment_method_baridimob' => 'BaridiMob',
     'delivery_type'=>'Delivery Type',
     'new_image_preview' => 'New image preview',
+    // Add to your admin language files
+    'color_variations' => 'Color variations',
+    'add_color' => 'Add color',
+    'color_name' => 'Color name',
+    'color_example' => 'e.g. Gold, Silver, Black',
+    'sku_optional' => 'SKU (optional)',
+    'price_override' => 'Price (override)',
+    'leave_blank' => 'Leave blank to use product price',
+    'color_image' => 'Color image',
+    'current_color_image' => 'Current color image',
+    'remove' => 'Remove',
+    'sku' => 'SKU',
 ];

@@ -65,4 +65,13 @@ class Product extends Model
     {
         return $this->belongsToMany(Order::class, 'order_items', 'product_id', 'order_id');
     }
+    public function variations()
+    {
+        return $this->hasMany(ProductVariation::class);
+    }
+
+    public function colorVariations()
+    {
+        return $this->variations()->where('attribute_name', 'color');
+    }
 }

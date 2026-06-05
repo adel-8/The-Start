@@ -21,18 +21,35 @@
 
         <div class="product-layout">
 
-            {{-- ── Left: Image ── --}}
+            {{-- ── Left: Gallery with color variations ── --}}
             <div class="product-gallery" data-reveal>
+                @php
+                    $colorVariations = $product->variations->where('attribute_name', 'color');
+                    $mainImage = $product->image_url;
+                    if ($colorVariations->isNotEmpty() && $colorVariations->first()->image_url) {
+                        $mainImage = $colorVariations->first()->image_url;
+                    }
+                @endphp
                 <div class="main-image">
-                    @if($product->image_url)
-                        <img src="{{ asset($product->image_url) }}" alt="{{ $product->name }}">
-                    @else
-                        <div class="no-image">
-                            <i class="fas fa-image"></i>
-                            <span>{{ __('messages.no_image') }}</span>
-                        </div>
-                    @endif
+                    <img id="product-main-image" src="{{ asset($mainImage) }}" alt="{{ $product->name }}">
                 </div>
+
+                @if($colorVariations->count() > 1)
+                    <div class="color-swatches">
+                        <h4>{{ __('messages.colors') }}:</h4>
+                        <div class="swatch-list">
+                            @foreach($colorVariations as $var)
+                                @php $img = $var->image_url ?: $product->image_url; @endphp
+                                <button type="button"
+                                        class="color-swatch @if($loop->first) active @endif"
+                                        data-image="{{ asset($img) }}"
+                                        data-name="{{ $var->attribute_value }}">
+                                    {{ $var->attribute_value }}
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
             </div>
 
             {{-- ── Right: Details ── --}}
@@ -83,7 +100,7 @@
                 </div>
 
                 @if($inStock)
-                    {{-- Quantity selector with micro-bounce --}}
+                    {{-- Quantity selector --}}
                     <div class="quantity-selector">
                         <label for="quantity">{{ __('messages.quantity') }}:</label>
                         <div class="quantity-controls">
@@ -114,17 +131,13 @@
                 @endif
             </div>
 
-            {{-- ══════════════════════════════════════════
-                 TABS: Description | Reviews
-            ══════════════════════════════════════════ --}}
+            {{-- TABS: Description | Reviews --}}
             <div class="product-tabs" data-reveal>
                 <div class="tabs-nav" role="tablist">
-                    <button class="tab-btn active" role="tab"
-                            aria-selected="true" data-tab="description">
+                    <button class="tab-btn active" role="tab" aria-selected="true" data-tab="description">
                         {{ __('messages.description') }}
                     </button>
-                    <button class="tab-btn" role="tab"
-                            aria-selected="false" data-tab="reviews">
+                    <button class="tab-btn" role="tab" aria-selected="false" data-tab="reviews">
                         {{ __('messages.customer_reviews') }}
                         @php $reviewCount = $product->approvedReviews()->count(); @endphp
                         @if($reviewCount)
@@ -146,7 +159,6 @@
 
                 {{-- Reviews tab --}}
                 <div class="tab-panel" id="tab-reviews" role="tabpanel">
-
                     @if(session('success'))
                         <div class="alert alert-success">
                             <i class="fas fa-check-circle"></i> {{ session('success') }}
@@ -235,7 +247,7 @@
             </div>
         </div>
 
-        {{-- ── Related Products ── --}}
+        {{-- Related Products --}}
         @if($relatedProducts && $relatedProducts->count())
             <div class="related-products">
                 <h2 class="section-title" data-reveal>
@@ -388,6 +400,32 @@
     border-color: var(--gold, #C9A96E);
     box-shadow: 0 0 0 3px var(--gold-glow, rgba(201,169,110,.2));
 }
+
+/* ── Color swatches ── */
+.color-swatches {
+    margin-top: 20px;
+}
+.swatch-list {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+.color-swatch {
+    background: var(--gold-light, #E8D5A3);
+    border: 1px solid var(--gold-dark, #8B6914);
+    border-radius: 30px;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 500;
+}
+.color-swatch.active {
+    background: var(--gold-dark, #8B6914);
+    color: white;
+    border-color: var(--gold-dark);
+}
 </style>
 @endpush
 
@@ -395,8 +433,7 @@
     @vite('resources/js/product.js')
     <script>
     (function () {
-
-        /* ── Tab switching ── */
+        // Tab switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const target = btn.dataset.tab;
@@ -411,10 +448,9 @@
             });
         });
 
-        
-
-        /* ── Buy now — sync qty then trigger cart add ── */
+        // Buy now
         const buyNow = document.getElementById('buyNowBtn');
+        const qtyInput = document.getElementById('quantity');
         if (buyNow) {
             buyNow.addEventListener('click', () => {
                 const addBtn = document.querySelector('.add-cart-btn:not(.disabled)');
@@ -424,6 +460,21 @@
             });
         }
 
+        // Color swatch image switcher
+        const swatches = document.querySelectorAll('.color-swatch');
+        const mainImage = document.getElementById('product-main-image');
+        if (swatches.length && mainImage) {
+            swatches.forEach(swatch => {
+                swatch.addEventListener('click', () => {
+                    const newImage = swatch.dataset.image;
+                    if (newImage) {
+                        mainImage.src = newImage;
+                        swatches.forEach(s => s.classList.remove('active'));
+                        swatch.classList.add('active');
+                    }
+                });
+            });
+        }
     })();
     </script>
 @endpush

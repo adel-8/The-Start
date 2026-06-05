@@ -118,6 +118,45 @@
         <img id="imagePreview" style="max-width: 200px; max-height: 200px;">
     </div>
 
+    {{-- ========== Color Variations Section ========== --}}
+    <div class="form-group">
+        <h3>{{ __('admin.color_variations') }}</h3>
+        <div id="variations-container">
+            @if($product->colorVariations && $product->colorVariations->count())
+                @foreach($product->colorVariations as $index => $var)
+                    <div class="variation-row" data-id="{{ $var->id }}">
+                        <input type="hidden" name="variation_ids[]" value="{{ $var->id }}">
+                        <div class="form-group">
+                            <label>{{ __('admin.color_name') }}</label>
+                            <input type="text" name="variations[{{ $index }}][attribute_value]" value="{{ $var->attribute_value }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ __('admin.sku') }}</label>
+                            <input type="text" name="variations[{{ $index }}][sku]" value="{{ $var->sku }}">
+                        </div>
+                        <div class="form-group">
+                            <label>{{ __('admin.price_override') }}</label>
+                            <input type="number" step="0.01" name="variations[{{ $index }}][price]" value="{{ $var->price }}">
+                        </div>
+                        <div class="form-group">
+                            <label>{{ __('admin.stock') }}</label>
+                            <input type="number" name="variations[{{ $index }}][stock]" value="{{ $var->stock }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ __('admin.current_color_image') }}</label>
+                            @if($var->image_url)
+                                <div><img src="{{ asset($var->image_url) }}" style="max-height: 50px; margin-bottom: 5px;"></div>
+                            @endif
+                            <input type="file" name="variation_images[{{ $index }}]" accept="image/*">
+                        </div>
+                        <button type="button" class="remove-variation btn-sm">{{ __('admin.remove') }}</button>
+                    </div>
+                @endforeach
+            @endif
+        </div>
+        <button type="button" id="addVariation" class="btn-secondary btn-sm">+ {{ __('admin.add_color') }}</button>
+    </div>
+
     <div class="form-actions">
         <button type="submit" class="btn-primary">{{ __('admin.update_product') }}</button>
         <a href="{{ route('admin.products.index') }}" class="btn-secondary">{{ __('admin.cancel') }}</a>
@@ -168,9 +207,7 @@
         font-weight: 500;
         color: var(--color-text);
     }
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
+    .form-group input, .form-group select, .form-group textarea {
         width: 100%;
         padding: 0.6rem 0.8rem;
         border: 1px solid var(--color-border);
@@ -179,9 +216,7 @@
         font-size: 0.9rem;
         transition: 0.2s;
     }
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
         outline: none;
         border-color: var(--color-primary);
         box-shadow: 0 0 0 2px rgba(100,95,125,0.1);
@@ -204,25 +239,48 @@
         gap: 1rem;
         flex-wrap: wrap;
     }
+    .variation-row {
+        background: var(--color-background);
+        border: 1px solid var(--color-border);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-end;
+        position: relative;
+    }
+    .variation-row .form-group {
+        flex: 1;
+        min-width: 150px;
+        margin-bottom: 0;
+    }
+    .remove-variation {
+        background: var(--color-danger);
+        color: white;
+        border: none;
+        padding: 0.5rem 0.8rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        height: 38px;
+        align-self: flex-end;
+    }
     @media (max-width: 768px) {
-        .form-row {
-            flex-direction: column;
-            gap: 0;
-        }
-        .checkbox-group {
-            margin-top: 0;
-        }
+        .form-row { flex-direction: column; gap: 0; }
+        .checkbox-group { margin-top: 0; }
+        .variation-row { flex-direction: column; align-items: stretch; }
+        .remove-variation { align-self: stretch; }
     }
 </style>
 @endpush
 
 @push('scripts')
 <script>
-    // Image preview on file select
+    // Image preview
     const imageInput = document.getElementById('image');
     const previewContainer = document.getElementById('imagePreviewContainer');
     const previewImage = document.getElementById('imagePreview');
-
     if (imageInput) {
         imageInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -237,6 +295,52 @@
                 previewContainer.style.display = 'none';
                 previewImage.src = '';
             }
+        });
+    }
+
+    // Variation management
+    const variationsContainer = document.getElementById('variations-container');
+    const addVariationBtn = document.getElementById('addVariation');
+    let variationCount = variationsContainer ? variationsContainer.children.length : 0;
+
+    if (variationsContainer && addVariationBtn) {
+        addVariationBtn.addEventListener('click', () => {
+            const newRow = document.createElement('div');
+            newRow.className = 'variation-row';
+            newRow.innerHTML = `
+                <div class="form-group">
+                    <label>{{ __('admin.color_name') }}</label>
+                    <input type="text" name="variations[${variationCount}][attribute_value]" placeholder="{{ __('admin.color_example') }}" required>
+                </div>
+                <div class="form-group">
+                    <label>{{ __('admin.sku_optional') }}</label>
+                    <input type="text" name="variations[${variationCount}][sku]" placeholder="SKU">
+                </div>
+                <div class="form-group">
+                    <label>{{ __('admin.price_override') }}</label>
+                    <input type="number" step="0.01" name="variations[${variationCount}][price]" placeholder="{{ __('admin.leave_blank') }}">
+                </div>
+                <div class="form-group">
+                    <label>{{ __('admin.stock') }}</label>
+                    <input type="number" name="variations[${variationCount}][stock]" value="0" required>
+                </div>
+                <div class="form-group">
+                    <label>{{ __('admin.color_image') }}</label>
+                    <input type="file" name="variation_images[${variationCount}]" accept="image/*">
+                </div>
+                <button type="button" class="remove-variation btn-sm">{{ __('admin.remove') }}</button>
+            `;
+            variationsContainer.appendChild(newRow);
+            variationCount++;
+
+            newRow.querySelector('.remove-variation').addEventListener('click', () => newRow.remove());
+        });
+
+        // Remove button for existing rows
+        document.querySelectorAll('.remove-variation').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.closest('.variation-row').remove();
+            });
         });
     }
 </script>
