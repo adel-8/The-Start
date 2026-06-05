@@ -20,7 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Global web middleware group (all web routes)
         $middleware->appendToGroup('web', [
             \App\Http\Middleware\SetLocale::class,
-            SecureHeadersMiddleware::class,   // ← Security headers added here
+            //SecureHeadersMiddleware::class,   // ← Security headers added here
         ]);
 
         // Middleware aliases
