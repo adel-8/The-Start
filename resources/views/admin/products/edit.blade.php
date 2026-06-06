@@ -20,7 +20,7 @@
     </div>
 @endif
 
-<form action="{{ route('admin.products.update', $product) }}" method="POST" enctype="multipart/form-data" class="product-form">
+<form action="/debug-form" method="POST" enctype="multipart/form-data" class="product-form">
     @csrf
     @method('PUT')
 

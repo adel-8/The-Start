@@ -35,6 +35,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PageController;
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -268,3 +269,9 @@ Route::get('/shipping-policy', [App\Http\Controllers\PageController::class, 'shi
 
 // FIX: Add this new success route
 Route::get('/checkout/success/{orderNumber}', [CheckoutController::class, 'success'])->name('checkout.success');
+
+
+
+Route::post('/debug-form', function (Request $request) {
+    return response()->json($request->all());
+})->middleware('auth');
