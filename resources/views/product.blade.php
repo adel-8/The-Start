@@ -492,6 +492,43 @@
     color: white;
     border-color: var(--gold-dark);
 }
+/* ── Main image container and image sizing ── */
+.main-image-container {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    background: #f8f8f8;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.main-image-container img {
+    width: 100%;
+    height: auto;
+    max-height: 500px;
+    object-fit: contain;
+    display: block;
+}
+
+/* Responsive for smaller screens */
+@media (max-width: 768px) {
+    .main-image-container {
+        max-width: 100%;
+    }
+    .main-image-container img {
+        max-height: 350px;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-image-container img {
+        max-height: 280px;
+    }
+}
 </style>
 @endpush
 

@@ -385,6 +385,7 @@ return [
     'login_to_review' => 'Log in to write a review.',
     'new_image_preview' => 'New image preview',
     'colors' => 'Colors',
-    'description' => 'Description'
-    
+    'description' => 'Description',
+    'insufficient_stock_total' => 'Only :stock items left in stock. Please adjust your quantity.',
+    'insufficient_stock' => 'Only :stock items left in stock.',
 ];

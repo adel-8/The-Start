@@ -542,4 +542,9 @@ return [
     'current_color_image' => 'Current color image',
     'remove' => 'Remove',
     'sku' => 'SKU',
+    'existing_images' => 'Existing Images',
+    'add_more_images' => 'Add More Images',
+    'existing_images_hint' => 'existing_images_hint',
+    'product_colors' => 'Product Colors',
+    'colors_hint' => ' colors_hint'
 ];

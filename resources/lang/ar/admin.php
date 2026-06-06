@@ -540,4 +540,9 @@ return [
     'current_color_image' => 'صورة اللون الحالية',
     'remove' => 'إزالة',
     'sku' => 'SKU',
+    'existing_images' => 'الصور الموجودة',
+    'add_more_images' => 'إضافة صور أكثر',
+    'existing_images_hint' => 'تلميح الصور الموجودة',
+    'product_colors' => 'ألوان المنتج',
+    'colors_hint' => 'تلميح الألوان'
 ];
