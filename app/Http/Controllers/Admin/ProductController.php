@@ -9,6 +9,7 @@ use App\Models\ProductColor;
 use App\Models\ProductImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
 {
@@ -241,37 +242,50 @@ class ProductController extends Controller
      * Upload new_images[], assign colors and primary flag.
      */
     private function saveNewImages(Product $product, Request $request, array $colorIdMap): void
-    {
-        if (! $request->hasFile('new_images')) return;
+{
+    if (! $request->hasFile('new_images')) {
+        Log::info('No new images uploaded.');
+        return;
+    }
 
-        $offset         = $product->images()->count();
-        $primaryFormKey = $request->input('new_primary_idx', null); // form sends which index is primary
+    // Ensure the storage directory exists
+    if (! Storage::disk('public')->exists('products')) {
+        Storage::disk('public')->makeDirectory('products');
+    }
 
-        foreach ($request->file('new_images') as $idx => $file) {
+    $offset = $product->images()->count();
+    $primaryFormKey = $request->input('new_primary_idx', null);
+
+    foreach ($request->file('new_images') as $idx => $file) {
+        try {
             $path = $file->store('products', 'public');
+            $fullPath = 'storage/' . $path;
 
             $colorIdxRaw = $request->input("new_image_color_idx.{$idx}", '');
-            $colorId     = ($colorIdxRaw !== '' && isset($colorIdMap[(int)$colorIdxRaw]))
-                           ? $colorIdMap[(int)$colorIdxRaw]
-                           : null;
+            $colorId = ($colorIdxRaw !== '' && isset($colorIdMap[(int)$colorIdxRaw]))
+                       ? $colorIdMap[(int)$colorIdxRaw]
+                       : null;
 
-            // Primary: explicitly chosen OR first image when gallery is empty
             $isPrimary = ((string)$primaryFormKey === (string)$idx)
                       || ($offset === 0 && $idx === 0 && $primaryFormKey === null);
 
             if ($isPrimary) {
-                // Un-mark all other images
                 $product->images()->update(['is_primary' => false]);
             }
 
             $product->images()->create([
-                'image_path' => 'storage/' . $path,
+                'image_path' => $fullPath,
                 'color_id'   => $colorId,
                 'is_primary' => $isPrimary,
                 'sort_order' => $offset + $idx,
             ]);
+
+            Log::info("Image saved: {$fullPath} for product {$product->id}");
+        } catch (\Exception $e) {
+            Log::error("Image upload failed: " . $e->getMessage());
         }
     }
+}
 
     /**
      * Keep products.image_url in sync with the primary gallery image.

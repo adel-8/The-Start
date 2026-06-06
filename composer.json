@@ -55,6 +55,7 @@
             "@php artisan test"
         ],
         "post-install-cmd": [
+            "php artisan storage:link",
             "@php -r \"if (!file_exists('.env')) { copy('.env.example', '.env'); } if (file_exists('.env') && preg_match('/^APP_KEY=\\s*$/m', file_get_contents('.env'))) { passthru('php artisan key:generate --ansi'); }\""
         ],
         "post-autoload-dump": [
