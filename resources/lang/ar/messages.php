@@ -409,4 +409,6 @@ return [
     'full_name_placeholder' => 'جون دو',
     'login_to_review' => 'سجل الدخول لكتابة تقييم.',
     'new_image_preview' => 'معاينة الصورة الجديدة',
+    'colors' => 'الألوان',
+    'description' => 'الوصف'
 ];

@@ -25,11 +25,32 @@
             <div class="product-gallery" data-reveal>
                 @php
                     $colors = $product->colors;
-                    $mainImage = $product->getMainImageUrlAttribute();
+                    $allImages = $product->images->sortBy('sort_order');
+                    // Fallback if no images
+                    if ($allImages->isEmpty()) {
+                        $mainImage = $product->image_url ?: '';
+                    } else {
+                        $mainImage = $allImages->first()->url;
+                    }
                 @endphp
-                <div class="main-image">
-                    <img id="product-main-image" src="{{ $mainImage }}" alt="{{ $product->name }}">
+
+                <div class="main-image-container">
+                    <img id="product-main-image" src="{{ asset($mainImage) }}" alt="{{ $product->name }}">
+                    @if($allImages->count() > 1)
+                        <button class="gallery-prev" id="galleryPrev"><i class="fas fa-chevron-left"></i></button>
+                        <button class="gallery-next" id="galleryNext"><i class="fas fa-chevron-right"></i></button>
+                    @endif
                 </div>
+
+                @if($allImages->count() > 1)
+                    <div class="gallery-thumbnails" id="galleryThumbnails">
+                        @foreach($allImages as $image)
+                            <div class="thumbnail {{ $loop->first ? 'active' : '' }}" data-image="{{ $image->url }}">
+                                <img src="{{ $image->url }}" alt="Thumbnail">
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
 
                 @if($colors->count() > 1)
                     <div class="color-swatches">
@@ -37,13 +58,14 @@
                         <div class="swatch-list">
                             @foreach($colors as $color)
                                 @php
-                                    $colorImage = $product->images->firstWhere('color_id', $color->id)?->url ?? $mainImage;
+                                    $colorImages = $product->images->where('color_id', $color->id);
+                                    $colorImageUrls = $colorImages->pluck('url')->toArray();
                                 @endphp
                                 <button type="button"
                                         class="color-swatch @if($loop->first) active @endif"
-                                        data-image="{{ $colorImage }}"
                                         data-color-id="{{ $color->id }}"
-                                        data-color-name="{{ $color->display_name }}">
+                                        data-color-name="{{ $color->display_name }}"
+                                        data-images="{{ json_encode($colorImageUrls) }}">
                                     {{ $color->display_name }}
                                 </button>
                             @endforeach
@@ -68,7 +90,6 @@
 
                 <h1 class="product-title">{{ $product->name }}</h1>
 
-                {{-- Animated star rating --}}
                 @php $avgRating = $product->averageRating(); @endphp
                 @if($avgRating)
                     <div class="product-stars" aria-label="{{ __('messages.average_rating') }}: {{ number_format($avgRating, 1) }}">
@@ -83,7 +104,6 @@
 
                 <div class="product-price">{{ format_currency($product->price) }}</div>
 
-                {{-- Stock status --}}
                 @php $inStock = ($product->stock ?? 0) > 0 && $product->status === 'active'; @endphp
                 <div class="stock-status">
                     @if($inStock)
@@ -102,8 +122,7 @@
                         <label for="quantity">{{ __('messages.quantity') }}:</label>
                         <div class="quantity-controls">
                             <button class="qty-btn" id="decreaseQty" type="button" aria-label="Decrease">−</button>
-                            <input type="number" id="quantity" name="quantity"
-                                   value="1" min="1" max="{{ $product->stock }}">
+                            <input type="number" id="quantity" name="quantity" value="1" min="1" max="{{ $product->stock }}">
                             <button class="qty-btn" id="increaseQty" type="button" aria-label="Increase">+</button>
                         </div>
                     </div>
@@ -136,9 +155,7 @@
                     <button class="tab-btn" role="tab" aria-selected="false" data-tab="reviews">
                         {{ __('messages.customer_reviews') }}
                         @php $reviewCount = $product->approvedReviews()->count(); @endphp
-                        @if($reviewCount)
-                            <span class="tab-count">{{ $reviewCount }}</span>
-                        @endif
+                        @if($reviewCount)<span class="tab-count">{{ $reviewCount }}</span>@endif
                     </button>
                 </div>
 
@@ -245,6 +262,77 @@
 
 @push('styles')
 <style>
+/* Gallery controls */
+.main-image-container {
+    position: relative;
+}
+.gallery-prev, .gallery-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+    transition: background 0.2s;
+}
+.gallery-prev { left: 10px; }
+.gallery-next { right: 10px; }
+.gallery-prev:hover, .gallery-next:hover {
+    background: rgba(0,0,0,0.8);
+}
+.gallery-thumbnails {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+}
+.thumbnail {
+    width: 70px;
+    height: 70px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.thumbnail.active {
+    border-color: var(--gold, #C9A96E);
+}
+.color-swatches {
+    margin-top: 20px;
+}
+.swatch-list {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+.color-swatch {
+    background: var(--gold-light, #E8D5A3);
+    border: 1px solid var(--gold-dark, #8B6914);
+    border-radius: 30px;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 500;
+}
+.color-swatch.active {
+    background: var(--gold-dark, #8B6914);
+    color: white;
+    border-color: var(--gold-dark);
+}
 /* ── Animated star rating on product page ── */
 .product-stars {
     display: flex;
@@ -438,40 +526,87 @@
             });
         }
 
-        // Color swatch – update main image and store selected color ID for cart
-        const swatches = document.querySelectorAll('.color-swatch');
+        // ── Gallery slider with thumbnails ──
+        let galleryImages = @json($allImages->pluck('url')->toArray());
         const mainImage = document.getElementById('product-main-image');
-        let selectedColorId = null;
-        if (swatches.length && mainImage) {
-            // Initialize with the first active swatch
-            const active = document.querySelector('.color-swatch.active');
-            if (active) selectedColorId = active.dataset.colorId;
+        const prevBtn = document.getElementById('galleryPrev');
+        const nextBtn = document.getElementById('galleryNext');
+        const thumbContainer = document.getElementById('galleryThumbnails');
+        let currentIndex = 0;
 
-            swatches.forEach(swatch => {
-                swatch.addEventListener('click', () => {
-                    const newImage = swatch.dataset.image;
-                    if (newImage) {
-                        mainImage.src = newImage;
-                        swatches.forEach(s => s.classList.remove('active'));
-                        swatch.classList.add('active');
-                        selectedColorId = swatch.dataset.colorId;
-                    }
-                });
+        function updateGallery(index) {
+            if (galleryImages[index]) {
+                mainImage.src = galleryImages[index];
+                if (thumbContainer) {
+                    const thumbs = thumbContainer.querySelectorAll('.thumbnail');
+                    thumbs.forEach((thumb, i) => {
+                        thumb.classList.toggle('active', i === index);
+                    });
+                }
+                currentIndex = index;
+            }
+        }
+
+        if (prevBtn && nextBtn && galleryImages.length > 1) {
+            prevBtn.addEventListener('click', () => {
+                let newIndex = (currentIndex - 1 + galleryImages.length) % galleryImages.length;
+                updateGallery(newIndex);
+            });
+            nextBtn.addEventListener('click', () => {
+                let newIndex = (currentIndex + 1) % galleryImages.length;
+                updateGallery(newIndex);
             });
         }
 
-        // Extend the Add to Cart AJAX to include the selected color_id
+        if (thumbContainer) {
+            const thumbs = thumbContainer.querySelectorAll('.thumbnail');
+            thumbs.forEach((thumb, idx) => {
+                thumb.addEventListener('click', () => updateGallery(idx));
+            });
+        }
+
+        // ── Color swatch filtering ──
+        const swatches = document.querySelectorAll('.color-swatch');
+        let originalImages = galleryImages.slice(); // copy
+
+        swatches.forEach(swatch => {
+            swatch.addEventListener('click', () => {
+                const imagesData = swatch.dataset.images;
+                let newImages = (imagesData && imagesData !== '[]') ? JSON.parse(imagesData) : [];
+                // If no specific images for this color, fallback to all product images
+                galleryImages = (newImages.length) ? newImages : originalImages;
+                currentIndex = 0;
+                updateGallery(currentIndex);
+
+                // Rebuild thumbnails if needed
+                if (thumbContainer && galleryImages.length > 0) {
+                    thumbContainer.innerHTML = '';
+                    galleryImages.forEach((img, idx) => {
+                        const thumbDiv = document.createElement('div');
+                        thumbDiv.className = 'thumbnail' + (idx === 0 ? ' active' : '');
+                        thumbDiv.dataset.image = img;
+                        thumbDiv.innerHTML = `<img src="${img}" alt="Thumbnail">`;
+                        thumbDiv.addEventListener('click', () => updateGallery(idx));
+                        thumbContainer.appendChild(thumbDiv);
+                    });
+                }
+
+                // Update active swatch UI
+                swatches.forEach(s => s.classList.remove('active'));
+                swatch.classList.add('active');
+            });
+        });
+
+        // Add to cart with color id
         const addCartBtn = document.querySelector('.add-cart-btn:not(.disabled)');
         if (addCartBtn) {
-            const originalClick = addCartBtn.onclick;
+            let selectedColorId = document.querySelector('.color-swatch.active')?.dataset.colorId || null;
             addCartBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 const productId = this.getAttribute('data-id');
                 const productName = this.getAttribute('data-name');
-                const productPrice = this.getAttribute('data-price');
                 const quantity = qtyInput ? qtyInput.value : 1;
 
-                // If product has colors but no color selected, show error
                 if (swatches.length > 1 && !selectedColorId) {
                     showToast('Please select a color', true);
                     return;
