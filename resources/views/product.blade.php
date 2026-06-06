@@ -245,7 +245,165 @@
 
 @push('styles')
 <style>
-/* your existing styles – keep as is */
+/* ── Animated star rating on product page ── */
+.product-stars {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin: 10px 0 14px;
+    font-size: 20px;
+}
+.product-stars .star-filled { color: var(--gold, #C9A96E); }
+.product-stars .star-empty  { color: #d1d5db; }
+.rating-value { font-size: 13px; color: #6b7280; margin-left: 4px; }
+
+/* ── Qty controls ── */
+.quantity-controls {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 1px solid var(--color-border, #e5e7eb);
+    border-radius: 8px;
+    overflow: hidden;
+    width: fit-content;
+}
+.qty-btn {
+    width: 38px; height: 38px;
+    border: none;
+    background: var(--color-surface, #f9fafb);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    transition: background .15s;
+    display: flex; align-items: center; justify-content: center;
+}
+.qty-btn:hover { background: var(--gold-light, #E8D5A3); }
+#quantity {
+    width: 52px; height: 38px;
+    border: none; border-left: 1px solid var(--color-border, #e5e7eb);
+    border-right: 1px solid var(--color-border, #e5e7eb);
+    text-align: center; font-size: 15px;
+    -moz-appearance: textfield;
+}
+#quantity::-webkit-inner-spin-button,
+#quantity::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+/* ── Tabs ── */
+.product-tabs {
+    grid-column: 1 / -1;
+    margin-top: 2.5rem;
+    border: 1px solid var(--color-border, #e5e7eb);
+    border-radius: 12px;
+    overflow: hidden;
+}
+.tabs-nav {
+    display: flex;
+    border-bottom: 1px solid var(--color-border, #e5e7eb);
+    background: var(--color-surface, #f9fafb);
+}
+.tab-btn {
+    padding: 13px 22px;
+    border: none; background: none;
+    font-size: 14px; font-weight: 500;
+    cursor: pointer;
+    color: var(--color-text-secondary, #6b7280);
+    border-bottom: 2px solid transparent;
+    transition: color .2s, border-color .2s;
+    display: flex; align-items: center; gap: 6px;
+}
+.tab-btn.active {
+    color: var(--color-text-primary, #111);
+    border-bottom-color: var(--gold, #C9A96E);
+}
+.tab-count {
+    background: var(--gold-light, #E8D5A3);
+    color: var(--gold-dark, #8B6914);
+    font-size: 11px; font-weight: 600;
+    padding: 1px 6px; border-radius: 10px;
+}
+.tab-panel { display: none; padding: 24px; }
+.tab-panel.active { display: block; }
+.tab-empty { color: var(--color-text-secondary, #6b7280); font-style: italic; }
+
+/* ── Average rating block ── */
+.average-rating {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    background: var(--color-surface, #f9fafb);
+    border-radius: 8px;
+    border: 1px solid var(--color-border, #e5e7eb);
+}
+.avg-number { font-size: 28px; font-weight: 700; color: var(--gold-dark, #8B6914); }
+.avg-stars .star-filled { color: var(--gold, #C9A96E); font-size: 18px; }
+.avg-stars .star-empty  { color: #d1d5db; font-size: 18px; }
+
+/* ── Review items ── */
+.review-item {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+.review-item:last-child { border-bottom: none; }
+.review-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+.review-stars .star-filled { color: var(--gold, #C9A96E); }
+.review-stars .star-empty  { color: #d1d5db; }
+.review-header small { color: #9ca3af; font-size: 12px; margin-left: auto; }
+
+/* ── Review form ── */
+.review-form {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--color-border, #e5e7eb);
+}
+.review-form textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border, #e5e7eb);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+    transition: border-color .2s;
+}
+.review-form textarea:focus {
+    outline: none;
+    border-color: var(--gold, #C9A96E);
+    box-shadow: 0 0 0 3px var(--gold-glow, rgba(201,169,110,.2));
+}
+
+/* ── Color swatches ── */
+.color-swatches {
+    margin-top: 20px;
+}
+.swatch-list {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+.color-swatch {
+    background: var(--gold-light, #E8D5A3);
+    border: 1px solid var(--gold-dark, #8B6914);
+    border-radius: 30px;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 500;
+}
+.color-swatch.active {
+    background: var(--gold-dark, #8B6914);
+    color: white;
+    border-color: var(--gold-dark);
+}
 </style>
 @endpush
 

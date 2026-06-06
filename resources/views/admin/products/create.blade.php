@@ -133,7 +133,7 @@
 @endsection
 
 @push('styles')
-@vite('resources/css/admin-product-form.css')
+@vite('resources/css/admin.css')
 <style>
 .form-section{background:var(--color-surface);padding:1.5rem;border-radius:1rem;border:1px solid var(--color-border);box-shadow:var(--shadow-sm);margin-bottom:1.5rem}
 .section-label{font-size:1rem;font-weight:600;margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid var(--color-border)}
