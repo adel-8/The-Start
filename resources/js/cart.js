@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Update quantity (waits for server)
-    function updateQuantity(productId, newQuantity) {
+    function updateQuantity(cartKey, newQuantity) {
         fetch('/cart/update', {
             method: 'POST',
             headers: {
@@ -81,12 +81,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
-            body: JSON.stringify({ product_id: productId, quantity: newQuantity })
+            body: JSON.stringify({ cart_key: cartKey, quantity: newQuantity })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const item = document.querySelector(`.cart-item[data-id="${productId}"]`);
+                const item = document.querySelector(`.cart-item[data-id="${cartKey}"]`);
                 if (item) {
                     const input = item.querySelector('.qty-input');
                     input.value = newQuantity;

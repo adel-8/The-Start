@@ -70,13 +70,21 @@ document.addEventListener('DOMContentLoaded', function() {
         addCartBtn.addEventListener('click', function(e) {
             e.preventDefault();
 
+            // Prevent multiple rapid clicks
+            if (this.disabled) return;
+            this.disabled = true;
+
             const productId = this.getAttribute('data-id');
             const productName = this.getAttribute('data-name');
             const productPrice = this.getAttribute('data-price');
-            const quantity = quantityInput ? quantityInput.value : 1;
+            let quantity = quantityInput ? parseInt(quantityInput.value, 10) : 1;
+            if (isNaN(quantity) || quantity < 1) quantity = 1;
+
+            console.log(`Adding product ${productId}, quantity ${quantity}`); // debug
 
             if (!productId) {
                 showToast('Product ID missing', true);
+                this.disabled = false;
                 return;
             }
 
@@ -89,13 +97,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({
                     product_id: productId,
-                    quantity: parseInt(quantity)
+                    quantity: quantity
                 })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showToast(`🛍️ ${productName} (x${quantity}) added to cart — $${(productPrice * quantity).toFixed(2)}`);
+                    showToast(`🛍️ ${productName} (x${quantity}) added to cart — ${formatCurrency(productPrice * quantity)}`);
                     updateCartCount();
                 } else {
                     showToast(data.message || 'Failed to add item', true);
@@ -104,6 +112,10 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error:', error);
                 showToast('Network error, please try again', true);
+            })
+            .finally(() => {
+                // Re-enable button after a short delay
+                setTimeout(() => { addCartBtn.disabled = false; }, 500);
             });
         });
     }
