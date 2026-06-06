@@ -144,42 +144,38 @@ class ProductController extends Controller
 
     // ========== HANDLE VARIATIONS ==========
     // Get existing variation IDs from form
-    $existingIds = $request->input('variation_ids', []);
-    $variations = $request->input('variations', []);
+    // Process variations
+$existingIds = $request->input('variation_ids', []);
+$variations = $request->input('variations', []);
 
-    // Delete variations that are not in the submitted list
-    $product->variations()->whereNotIn('id', $existingIds)->delete();
+// Delete removed variations
+$product->variations()->whereNotIn('id', $existingIds)->delete();
 
-    // Loop through variations and update/create
-    foreach ($variations as $index => $varData) {
-        // Skip empty rows (if color name is empty)
-        if (empty($varData['attribute_value'])) {
-            continue;
+foreach ($variations as $key => $varData) {
+    // If the key is numeric and exists in existingIds, it's an update; otherwise, create new
+    $variationId = is_numeric($key) && in_array($key, $existingIds) ? $key : null;
+    
+    $variation = $product->variations()->updateOrCreate(
+        ['id' => $variationId],
+        [
+            'sku'             => $varData['sku'] ?? null,
+            'attribute_name'  => 'color',
+            'attribute_value' => $varData['attribute_value'],
+            'price'           => $varData['price'] ?? null,
+            'stock'           => $varData['stock'] ?? 0,
+        ]
+    );
+
+    // Handle image upload
+    if ($request->hasFile("variation_images.{$key}")) {
+        if ($variation->image_url) {
+            $oldPath = str_replace('/storage/', '', $variation->image_url);
+            Storage::disk('public')->delete($oldPath);
         }
-
-        $variationId = $existingIds[$index] ?? null;
-
-        $variation = $product->variations()->updateOrCreate(
-            ['id' => $variationId],
-            [
-                'sku'             => $varData['sku'] ?? null,
-                'attribute_name'  => 'color',
-                'attribute_value' => $varData['attribute_value'],
-                'price'           => !empty($varData['price']) ? $varData['price'] : null,
-                'stock'           => $varData['stock'] ?? 0,
-            ]
-        );
-
-        // Handle variation image upload
-        if ($request->hasFile("variation_images.{$index}")) {
-            if ($variation->image_url) {
-                $oldPath = str_replace('/storage/', '', $variation->image_url);
-                Storage::disk('public')->delete($oldPath);
-            }
-            $path = $request->file("variation_images.{$index}")->store('product_variations', 'public');
-            $variation->update(['image_url' => '/storage/' . $path]);
-        }
+        $path = $request->file("variation_images.{$key}")->store('product_variations', 'public');
+        $variation->update(['image_url' => '/storage/' . $path]);
     }
+}
 
     // Log success for debugging
     Log::info('Product updated successfully', ['product_id' => $product->id, 'variations_count' => $product->variations()->count()]);
