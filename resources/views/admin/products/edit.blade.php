@@ -171,15 +171,13 @@
     @endif
 
     {{-- ══ Upload New Images ══ --}}
+    
     <div class="form-section">
         <h3 class="section-label">{{ __('admin.add_more_images') }}</h3>
-        <div class="upload-zone" id="uploadZone">
-            <i class="fas fa-cloud-upload-alt"></i>
-            <p>{{ __('admin.click_or_drag_images') }}</p>
-            <input type="file" name="new_images[]" id="galleryInput"
-                   multiple accept="image/jpeg,image/png,image/jpg,image/webp">
+        <div class="form-group">
+            <input type="file" name="new_images[]" multiple accept="image/jpeg,image/png,image/jpg,image/webp">
+            <small>You can select multiple images. Hold Ctrl (Windows) or Cmd (Mac) to choose several.</small>
         </div>
-        <div class="gallery-preview" id="newGalleryPreview"></div>
     </div>
 
     <div class="form-actions">
