@@ -22,8 +22,8 @@
                 {{-- Image (clickable) --}}
                 <a href="{{ route('product.show', $product->slug) }}" class="product-img-link">
                     <div class="product-img">
-                        @if($product->image_url)
-                            <img src="{{ asset($product->image_url) }}" alt="{{ $product->name }}">
+                        @if($product->getMainImageUrlAttribute())
+                            <img src="{{ $product->getMainImageUrlAttribute() }}" alt="{{ $product->name }}">
                         @else
                             <i class="fa-solid fa-shirt"></i>
                         @endif
