@@ -1,24 +1,19 @@
 <div class="product-card" data-reveal>
     @php
         $stock = $product->stock ?? 0;
-        $displayImage = $product->image_url;
-        $firstColor = $product->variations->firstWhere('attribute_name', 'color');
-        if ($firstColor && $firstColor->image_url) {
-            $displayImage = $firstColor->image_url;
-        }
+        $displayImage = $product->getMainImageUrlAttribute();
     @endphp
 
     <a href="{{ route('product.show', $product->slug) }}" class="product-card__image-link">
         <div class="product-card__image-wrapper">
             <div class="product-img">
                 @if($displayImage)
-                    <img src="{{ asset($displayImage) }}" alt="{{ $product->name }}" loading="lazy">
+                    <img src="{{ $displayImage }}" alt="{{ $product->name }}" loading="lazy">
                 @else
                     <i class="fa-solid fa-clock"></i>
                 @endif
             </div>
 
-            {{-- Hover overlay (desktop only) --}}
             <div class="product-card__hover-overlay">
                 @if($stock > 0)
                     <button class="add-cart-btn overlay-cart-btn"
@@ -66,7 +61,6 @@
 
         <div class="product-price">{{ format_currency($product->price) }}</div>
 
-        {{-- Always-visible action buttons --}}
         <div class="product-actions">
             @if($stock > 0)
                 <button class="add-cart-btn"
