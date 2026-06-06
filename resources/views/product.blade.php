@@ -533,173 +533,193 @@
 @endpush
 
 @push('scripts')
-    @vite('resources/js/product.js')
-    <script>
-    (function () {
-        // Tab switching
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const target = btn.dataset.tab;
-                document.querySelectorAll('.tab-btn').forEach(b => {
-                    b.classList.remove('active');
-                    b.setAttribute('aria-selected', 'false');
-                });
-                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-                btn.classList.add('active');
-                btn.setAttribute('aria-selected', 'true');
-                document.getElementById('tab-' + target)?.classList.add('active');
+@vite('resources/js/product.js')
+<script>
+(function () {
+    const qtyInput = document.getElementById('quantity');
+
+    /* ── Tabs (unchanged) ── */
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.dataset.tab;
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-selected', 'false');
             });
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            btn.setAttribute('aria-selected', 'true');
+            document.getElementById('tab-' + target)?.classList.add('active');
         });
+    });
 
-        // Buy now
-        const buyNow = document.getElementById('buyNowBtn');
-        const qtyInput = document.getElementById('quantity');
-        if (buyNow) {
-            buyNow.addEventListener('click', () => {
-                const addBtn = document.querySelector('.add-cart-btn:not(.disabled)');
-                if (!addBtn) return;
-                addBtn.dataset.quantity = qtyInput?.value || 1;
-                addBtn.click();
-            });
-        }
+    /* ── Gallery (unchanged) ── */
+    let galleryImages = @json($allImages->pluck('url')->toArray());
+    const mainImage     = document.getElementById('product-main-image');
+    const prevBtn       = document.getElementById('galleryPrev');
+    const nextBtn       = document.getElementById('galleryNext');
+    const thumbContainer = document.getElementById('galleryThumbnails');
+    let currentIndex = 0;
 
-        // ── Gallery slider with thumbnails ──
-        let galleryImages = @json($allImages->pluck('url')->toArray());
-        const mainImage = document.getElementById('product-main-image');
-        const prevBtn = document.getElementById('galleryPrev');
-        const nextBtn = document.getElementById('galleryNext');
-        const thumbContainer = document.getElementById('galleryThumbnails');
-        let currentIndex = 0;
+    function updateGallery(index) {
+        if (!galleryImages[index]) return;
+        mainImage.src = galleryImages[index];
+        thumbContainer?.querySelectorAll('.thumbnail').forEach((t, i) =>
+            t.classList.toggle('active', i === index)
+        );
+        currentIndex = index;
+    }
 
-        function updateGallery(index) {
-            if (galleryImages[index]) {
-                mainImage.src = galleryImages[index];
-                if (thumbContainer) {
-                    const thumbs = thumbContainer.querySelectorAll('.thumbnail');
-                    thumbs.forEach((thumb, i) => {
-                        thumb.classList.toggle('active', i === index);
-                    });
-                }
-                currentIndex = index;
+    prevBtn?.addEventListener('click', () =>
+        updateGallery((currentIndex - 1 + galleryImages.length) % galleryImages.length)
+    );
+    nextBtn?.addEventListener('click', () =>
+        updateGallery((currentIndex + 1) % galleryImages.length)
+    );
+    thumbContainer?.querySelectorAll('.thumbnail').forEach((thumb, idx) =>
+        thumb.addEventListener('click', () => updateGallery(idx))
+    );
+
+    /* ── Color swatches (unchanged logic, but DON'T update a stale variable) ── */
+    const swatches       = document.querySelectorAll('.color-swatch');
+    const originalImages = galleryImages.slice();
+
+    swatches.forEach(swatch => {
+        swatch.addEventListener('click', () => {
+            const raw = swatch.dataset.images;
+            const imgs = (raw && raw !== '[]') ? JSON.parse(raw) : [];
+            galleryImages = imgs.length ? imgs : originalImages;
+
+            if (thumbContainer) {
+                thumbContainer.innerHTML = '';
+                galleryImages.forEach((img, idx) => {
+                    const d = document.createElement('div');
+                    d.className = 'thumbnail' + (idx === 0 ? ' active' : '');
+                    d.innerHTML = `<img src="${img}" alt="">`;
+                    d.addEventListener('click', () => updateGallery(idx));
+                    thumbContainer.appendChild(d);
+                });
             }
-        }
 
-        if (prevBtn && nextBtn && galleryImages.length > 1) {
-            prevBtn.addEventListener('click', () => {
-                let newIndex = (currentIndex - 1 + galleryImages.length) % galleryImages.length;
-                updateGallery(newIndex);
-            });
-            nextBtn.addEventListener('click', () => {
-                let newIndex = (currentIndex + 1) % galleryImages.length;
-                updateGallery(newIndex);
-            });
-        }
-
-        if (thumbContainer) {
-            const thumbs = thumbContainer.querySelectorAll('.thumbnail');
-            thumbs.forEach((thumb, idx) => {
-                thumb.addEventListener('click', () => updateGallery(idx));
-            });
-        }
-
-        // ── Color swatch filtering ──
-        const swatches = document.querySelectorAll('.color-swatch');
-        let originalImages = galleryImages.slice(); // copy
-
-        swatches.forEach(swatch => {
-            swatch.addEventListener('click', () => {
-                const imagesData = swatch.dataset.images;
-                let newImages = (imagesData && imagesData !== '[]') ? JSON.parse(imagesData) : [];
-                // If no specific images for this color, fallback to all product images
-                galleryImages = (newImages.length) ? newImages : originalImages;
-                currentIndex = 0;
-                updateGallery(currentIndex);
-
-                // Rebuild thumbnails if needed
-                if (thumbContainer && galleryImages.length > 0) {
-                    thumbContainer.innerHTML = '';
-                    galleryImages.forEach((img, idx) => {
-                        const thumbDiv = document.createElement('div');
-                        thumbDiv.className = 'thumbnail' + (idx === 0 ? ' active' : '');
-                        thumbDiv.dataset.image = img;
-                        thumbDiv.innerHTML = `<img src="${img}" alt="Thumbnail">`;
-                        thumbDiv.addEventListener('click', () => updateGallery(idx));
-                        thumbContainer.appendChild(thumbDiv);
-                    });
-                }
-
-                // Update active swatch UI
-                swatches.forEach(s => s.classList.remove('active'));
-                swatch.classList.add('active');
-            });
+            updateGallery(0);
+            swatches.forEach(s => s.classList.remove('active'));
+            swatch.classList.add('active');
+            // NOTE: we no longer maintain a stale selectedColorId variable here.
+            // doAddToCart() reads the active swatch live at call time instead.
         });
+    });
 
-        // Add to cart with color id
-        const addCartBtn = document.querySelector('.add-cart-btn:not(.disabled)');
-        if (addCartBtn) {
-            let selectedColorId = document.querySelector('.color-swatch.active')?.dataset.colorId || null;
-            addCartBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const productId = this.getAttribute('data-id');
-                const productName = this.getAttribute('data-name');
-                const quantity = qtyInput ? qtyInput.value : 1;
+    /* ── FIX: Clone add-cart-btn to strip product.js handlers ──────────────────
+       product.js registers its own click handler on .add-cart-btn.
+       Cloning the node removes all previously attached event listeners,
+       so only ONE handler (below) will ever fire per click.               ── */
+    const rawBtn = document.querySelector('.add-cart-btn:not(.disabled)');
+    let addCartBtn = null;
+    if (rawBtn) {
+        const clean = rawBtn.cloneNode(true);
+        rawBtn.parentNode.replaceChild(clean, rawBtn);
+        addCartBtn = clean;
+    }
 
-                if (swatches.length > 1 && !selectedColorId) {
-                    showToast('Please select a color', true);
-                    return;
-                }
+    let isAdding = false; // prevents rapid double-clicks on either button
 
-                fetch('/cart/add', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        product_id: productId,
-                        quantity: parseInt(quantity),
-                        color_id: selectedColorId || null
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast(`🛍️ ${productName} added to cart`);
-                        updateCartCount();
-                    } else {
-                        showToast(data.message || 'Failed to add item', true);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showToast('Network error, please try again', true);
-                });
-            });
+    /* ── FIX: Shared function — called directly, never via addBtn.click() ── */
+    function doAddToCart(quantity) {
+        if (isAdding || !addCartBtn) return;
+
+        // FIX: read color from DOM right now, not from a stale closure variable
+        const activeSwatch  = document.querySelector('.color-swatch.active');
+        const selectedColorId = activeSwatch?.dataset.colorId || null;
+
+        const productId   = addCartBtn.getAttribute('data-id');
+        const productName = addCartBtn.getAttribute('data-name');
+
+        if (swatches.length > 1 && !selectedColorId) {
+            showToast('{{ __("messages.please_select_color") }}', true);
+            return;
         }
 
-        function showToast(message, isError = false) {
-            let toast = document.querySelector('.toast-notify');
-            if (toast) toast.remove();
-            toast = document.createElement('div');
-            toast.className = 'toast-notify';
-            toast.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> ${message}`;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2000);
-        }
+        isAdding = true;
+        const originalHTML  = addCartBtn.innerHTML;
+        addCartBtn.disabled = true;
+        addCartBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-        function updateCartCount() {
-            fetch('/cart/count', {
-                method: 'GET',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-            .then(response => response.json())
+        fetch('/cart/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            },
+            body: JSON.stringify({
+                product_id: productId,
+                quantity:   parseInt(quantity),
+                color_id:   selectedColorId || null,
+            }),
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                addCartBtn.innerHTML = '<i class="fas fa-check"></i>';
+                addCartBtn.classList.add('btn-success');
+                showToast(`🛍️ ${productName} {{ __("messages.product_added_to_cart") }}`);
+                // Trigger navbar badge bounce (wired in app.blade.php)
+                document.dispatchEvent(new CustomEvent('cartUpdated'));
+                updateCartCount();
+                setTimeout(() => {
+                    addCartBtn.innerHTML = originalHTML;
+                    addCartBtn.classList.remove('btn-success');
+                    addCartBtn.disabled = false;
+                    isAdding = false;
+                }, 1800);
+            } else {
+                addCartBtn.innerHTML = originalHTML;
+                addCartBtn.disabled  = false;
+                isAdding = false;
+                showToast(data.message || 'Failed to add item', true);
+            }
+        })
+        .catch(() => {
+            addCartBtn.innerHTML = originalHTML;
+            addCartBtn.disabled  = false;
+            isAdding = false;
+            showToast('Network error, please try again', true);
+        });
+    }
+
+    /* ── Add to cart button ── */
+    addCartBtn?.addEventListener('click', e => {
+        e.preventDefault();
+        doAddToCart(qtyInput?.value || 1);
+    });
+
+    /* ── FIX: Buy Now calls doAddToCart() directly — NOT addBtn.click() ──
+       addBtn.click() was the root cause of the double-add.               ── */
+    const buyNow = document.getElementById('buyNowBtn');
+    buyNow?.addEventListener('click', () => {
+        doAddToCart(qtyInput?.value || 1);
+        // Redirect to cart after a brief delay so the toast is visible
+        setTimeout(() => window.location.href = '{{ route("cart") }}', 600);
+    });
+
+    /* ── Helpers ── */
+    function showToast(message, isError = false) {
+        document.querySelector('.toast-notify')?.remove();
+        const t = document.createElement('div');
+        t.className = 'toast-notify' + (isError ? ' toast-error' : '');
+        t.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> ${message}`;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 2400);
+    }
+
+    function updateCartCount() {
+        fetch('/cart/count', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.json())
             .then(data => {
-                const counter = document.querySelector('.cart-count');
-                if (counter) counter.textContent = data.count;
-            })
-            .catch(error => console.error('Error updating cart count:', error));
-        }
-    })();
-    </script>
+                const el = document.querySelector('.cart-count');
+                if (el) el.textContent = data.count;
+            });
+    }
+})();
+</script>
 @endpush
