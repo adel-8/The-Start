@@ -7,27 +7,25 @@ use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    /**
-     * Display the specified product.
-     */
-    public function show($slug)
+    public function show(string $slug)
     {
-        // Find active product with reviews and variations (colors)
         $product = Product::where('slug', $slug)
-                          ->where('status', 'active')
-                          ->with(['reviews', 'variations'])
-                          ->firstOrFail();
+            ->where('status', 'active')
+            ->with([
+                'reviews',
+                'images'  => fn($q) => $q->orderBy('sort_order'),
+                'colors'  => fn($q) => $q->orderBy('sort_order'),
+            ])
+            ->firstOrFail();
 
-        // Get related products (also eager load variations for product cards)
+        // Related products: same category, also load their images for product-card
         $relatedProducts = Product::where('status', 'active')
-                                  ->where('id', '!=', $product->id)
-                                  ->when($product->category_id, function ($query) use ($product) {
-                                      $query->where('category_id', $product->category_id);
-                                  })
-                                  ->with('variations')
-                                  ->inRandomOrder()
-                                  ->limit(4)
-                                  ->get();
+            ->where('id', '!=', $product->id)
+            ->when($product->category_id, fn($q) => $q->where('category_id', $product->category_id))
+            ->with(['images' => fn($q) => $q->where('is_primary', true)->limit(1)])
+            ->inRandomOrder()
+            ->limit(4)
+            ->get();
 
         return view('product', compact('product', 'relatedProducts'));
     }

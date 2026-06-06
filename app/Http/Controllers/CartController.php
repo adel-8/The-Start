@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Cart;
+use App\Models\ProductColor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
@@ -13,38 +14,78 @@ class CartController extends Controller
 {
     use CartHelper;
 
-    /**
-     * Display the cart page.
-     */
+    // ── Display ───────────────────────────────────────────
+
     public function cart()
     {
         $cart = $this->getCart();
         return view('cart', compact('cart'));
     }
 
-    /**
-     * Add a product to the cart.
-     */
+    // ── Add ───────────────────────────────────────────────
+
     public function add(Request $request)
     {
         $request->validate([
             'product_id' => 'required|exists:products,id',
-            'quantity'   => 'nullable|integer|min:1'
+            'quantity'   => 'nullable|integer|min:1',
+            'color_id'   => 'nullable|exists:product_colors,id',
         ]);
 
-        $product = Product::findOrFail($request->product_id);
-        $quantity = $request->quantity ?? 1;
+        $product  = Product::with(['images', 'colors'])->findOrFail($request->product_id);
+        $quantity = max(1, (int) $request->quantity);
+        $colorId  = $request->color_id ? (int) $request->color_id : null;
+
+        // If product has colors, a color must be chosen
+        if ($product->colors->isNotEmpty() && !$colorId) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => __('messages.please_select_color'),
+                ], 422);
+            }
+            return redirect()->back()->withErrors(['color' => __('messages.please_select_color')]);
+        }
+
+        // Validate chosen color belongs to this product
+        if ($colorId && !$product->colors->contains('id', $colorId)) {
+            $colorId = null;
+        }
+
+        // Cart key: "productId" or "productId_colorId"
+        $cartKey   = $colorId ? "{$product->id}_{$colorId}" : (string) $product->id;
+        $colorName = null;
+
+        if ($colorId) {
+            $color     = $product->colors->firstWhere('id', $colorId);
+            $colorName = $color?->display_name;
+        }
+
+        // Best image: color-specific first, then primary, then legacy image_url
+        $image = $product->image_url;
+        if ($colorId) {
+            $colorImg = $product->images->firstWhere('color_id', $colorId);
+            if ($colorImg) $image = $colorImg->image_path;
+        } else {
+            $primaryImg = $product->images->firstWhere('is_primary', true)
+                       ?? $product->images->first();
+            if ($primaryImg) $image = $primaryImg->image_path;
+        }
 
         $cart = $this->getCart();
 
-        if (isset($cart[$product->id])) {
-            $cart[$product->id]['quantity'] += $quantity;
+        if (isset($cart[$cartKey])) {
+            $cart[$cartKey]['quantity'] += $quantity;
         } else {
-            $cart[$product->id] = [
-                'name'     => $product->name,
-                'price'    => $product->price,
-                'quantity' => $quantity,
-                'image'    => $product->image_url,
+            $cart[$cartKey] = [
+                'cart_key'   => $cartKey,   // stored so cart view can use it directly
+                'product_id' => $product->id,
+                'name'       => $product->name,
+                'price'      => (float) $product->price,
+                'quantity'   => $quantity,
+                'image'      => $image,
+                'color_id'   => $colorId,
+                'color_name' => $colorName,
             ];
         }
 
@@ -53,27 +94,27 @@ class CartController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'success'    => true,
-                'message'    => 'Product added to cart',
-                'cart_count' => $this->getCartCount()
+                'message'    => __('messages.product_added_to_cart'),
+                'cart_count' => $this->getCartCount(),
             ]);
         }
 
-        return redirect()->back()->with('success', 'Product added to cart');
+        return redirect()->back()->with('success', __('messages.product_added_to_cart'));
     }
 
-    /**
-     * Update product quantity.
-     */
+    // ── Update ────────────────────────────────────────────
+
     public function update(Request $request)
     {
         $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'quantity'   => 'required|integer|min:1'
+            'cart_key' => 'required|string',
+            'quantity' => 'required|integer|min:1',
         ]);
 
         $cart = $this->getCart();
-        if (isset($cart[$request->product_id])) {
-            $cart[$request->product_id]['quantity'] = $request->quantity;
+
+        if (isset($cart[$request->cart_key])) {
+            $cart[$request->cart_key]['quantity'] = $request->quantity;
             $this->saveCart($cart);
         }
 
@@ -84,12 +125,16 @@ class CartController extends Controller
         return redirect()->route('cart');
     }
 
+    // ── Remove ────────────────────────────────────────────
+
     /**
-     * Remove a product from the cart.
+     * Route: DELETE /cart/remove/{id}
+     * {id} is the cart_key, e.g. "5" or "5_3"
      */
-    public function remove($id, Request $request)
+    public function remove(string $id, Request $request)
     {
         $cart = $this->getCart();
+
         if (isset($cart[$id])) {
             unset($cart[$id]);
             $this->saveCart($cart);
@@ -102,9 +147,8 @@ class CartController extends Controller
         return redirect()->route('cart');
     }
 
-    /**
-     * Clear the entire cart.
-     */
+    // ── Clear ─────────────────────────────────────────────
+
     public function clear(Request $request)
     {
         $this->saveCart([]);
@@ -116,9 +160,8 @@ class CartController extends Controller
         return redirect()->route('cart');
     }
 
-    /**
-     * Get the current cart count (for AJAX).
-     */
+    // ── Count (AJAX) ──────────────────────────────────────
+
     public function count()
     {
         return response()->json(['count' => $this->getCartCount()]);
