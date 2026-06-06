@@ -75,8 +75,11 @@
                     <td><input type="checkbox" name="ids[]" value="{{ $product->id }}" class="product-checkbox"></td>
                     <td>{{ $product->id }}</td>
                     <td>
-                        @if($product->image_url)
-                            <img src="{{ asset($product->image_url) }}" class="product-thumb" alt="{{ $product->name }}">
+                        @php
+                            $img = $product->primaryImage()?->url ?? ($product->image_url ? asset($product->image_url) : null);
+                        @endphp
+                        @if($img)
+                            <img src="{{ $img }}" class="product-thumb" alt="{{ $product->name }}">
                         @else
                             <span class="no-image">{{ __('admin.no_image') }}</span>
                         @endif
