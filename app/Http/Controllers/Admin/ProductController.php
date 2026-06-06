@@ -106,82 +106,88 @@ class ProductController extends Controller
         return view('admin.products.edit', compact('product', 'categories'));
     }
 
-  public function update(Request $request, Product $product)
-{
-    // Basic product validation
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'slug' => 'required|string|max:255|unique:products,slug,' . $product->id,
-        'description' => 'nullable|string',
-        'category_id' => 'nullable|exists:categories,id',
-        'buy_price' => 'required|numeric|min:0',
-        'price' => 'required|numeric|min:0',
-        'stock' => 'nullable|integer|min:0',
-        'is_new' => 'nullable|boolean',
-        'bestseller' => 'nullable|boolean',
-        'status' => 'required|in:active,inactive',
-        'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-    ]);
+    public function update(Request $request, Product $product)
+    {
+        // Log incoming request for debugging (remove after fixing)
+        Log::info('Product update request', $request->all());
 
-    // Prepare product data
-    $data = $request->only(['name', 'slug', 'description', 'category_id', 'buy_price', 'price', 'stock', 'status']);
-    $data['slug'] = Str::slug($request->slug);
-    $data['is_new'] = $request->has('is_new');
-    $data['bestseller'] = $request->has('bestseller');
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:products,slug,' . $product->id,
+            'description' => 'nullable|string',
+            'category_id' => 'nullable|exists:categories,id',
+            'buy_price' => 'required|numeric|min:0',
+            'price' => 'required|numeric|min:0',
+            'stock' => 'nullable|integer|min:0',
+            'is_new' => 'nullable|boolean',
+            'bestseller' => 'nullable|boolean',
+            'status' => 'required|in:active,inactive',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
 
-    // Handle main image
-    if ($request->hasFile('image')) {
-        if ($product->image_url) {
-            $oldPath = str_replace('/storage/', '', $product->image_url);
-            Storage::disk('public')->delete($oldPath);
+        // Prepare product data
+        $data = $request->only(['name', 'slug', 'description', 'category_id', 'buy_price', 'price', 'stock', 'status']);
+        $data['slug'] = Str::slug($request->slug);
+        $data['is_new'] = $request->has('is_new');
+        $data['bestseller'] = $request->has('bestseller');
+
+        if ($request->hasFile('image')) {
+            if ($product->image_url) {
+                $oldPath = str_replace('/storage/', '', $product->image_url);
+                Storage::disk('public')->delete($oldPath);
+            }
+            $path = $request->file('image')->store('products', 'public');
+            $data['image_url'] = '/storage/' . $path;
         }
-        $path = $request->file('image')->store('products', 'public');
-        $data['image_url'] = '/storage/' . $path;
-    }
 
-    // Update product
-    $product->update($data);
+        $product->update($data);
 
-    // ========== HANDLE VARIATIONS ==========
-    // Get existing variation IDs from form
-    // Process variations
-$existingIds = $request->input('variation_ids', []);
-$variations = $request->input('variations', []);
+        // --- Handle variations ---
+        $existingIds = $request->input('variation_ids', []);
+        $variations = $request->input('variations', []);
 
-// Delete removed variations
-$product->variations()->whereNotIn('id', $existingIds)->delete();
+        // Delete removed variations
+        $product->variations()->whereNotIn('id', $existingIds)->delete();
 
-foreach ($variations as $key => $varData) {
-    // If the key is numeric and exists in existingIds, it's an update; otherwise, create new
-    $variationId = is_numeric($key) && in_array($key, $existingIds) ? $key : null;
-    
-    $variation = $product->variations()->updateOrCreate(
-        ['id' => $variationId],
-        [
-            'sku'             => $varData['sku'] ?? null,
-            'attribute_name'  => 'color',
-            'attribute_value' => $varData['attribute_value'],
-            'price'           => $varData['price'] ?? null,
-            'stock'           => $varData['stock'] ?? 0,
-        ]
-    );
+        // Process variations
+        foreach ($variations as $key => $varData) {
+            // Skip if color name is missing
+            if (empty($varData['attribute_value'])) {
+                continue;
+            }
 
-    // Handle image upload
-    if ($request->hasFile("variation_images.{$key}")) {
-        if ($variation->image_url) {
-            $oldPath = str_replace('/storage/', '', $variation->image_url);
-            Storage::disk('public')->delete($oldPath);
+            // Determine if this is an existing variation (ID is numeric and appears in existingIds)
+            $variationId = null;
+            if (is_numeric($key) && in_array($key, $existingIds)) {
+                $variationId = $key;
+            }
+
+            $variation = $product->variations()->updateOrCreate(
+                ['id' => $variationId],
+                [
+                    'sku'             => $varData['sku'] ?? null,
+                    'attribute_name'  => 'color',
+                    'attribute_value' => $varData['attribute_value'],
+                    'price'           => !empty($varData['price']) ? $varData['price'] : null,
+                    'stock'           => $varData['stock'] ?? 0,
+                ]
+            );
+
+            // Handle image upload for this variation
+            if ($request->hasFile("variation_images.{$key}")) {
+                if ($variation->image_url) {
+                    $oldPath = str_replace('/storage/', '', $variation->image_url);
+                    Storage::disk('public')->delete($oldPath);
+                }
+                $path = $request->file("variation_images.{$key}")->store('product_variations', 'public');
+                $variation->update(['image_url' => '/storage/' . $path]);
+            }
         }
-        $path = $request->file("variation_images.{$key}")->store('product_variations', 'public');
-        $variation->update(['image_url' => '/storage/' . $path]);
+
+        Log::info('Product updated', ['product_id' => $product->id, 'variation_count' => $product->variations()->count()]);
+
+        return redirect()->route('admin.products.index')->with('success', 'Product updated successfully.');
     }
-}
-
-    // Log success for debugging
-    Log::info('Product updated successfully', ['product_id' => $product->id, 'variations_count' => $product->variations()->count()]);
-
-    return redirect()->route('admin.products.index')->with('success', 'Product updated successfully.');
-}
 
     public function destroy(Product $product)
     {
