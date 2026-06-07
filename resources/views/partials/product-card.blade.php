@@ -2,6 +2,8 @@
     @php
         $stock = $product->stock ?? 0;
         $displayImage = $product->getMainImageUrlAttribute();
+        $defaultColor = $product->colors->first();
+        $defaultColorId = $defaultColor ? $defaultColor->id : null;
     @endphp
 
     <a href="{{ route('product.show', $product->slug) }}" class="product-card__image-link">
@@ -19,7 +21,8 @@
                     <button class="add-cart-btn overlay-cart-btn"
                             data-id="{{ $product->id }}"
                             data-name="{{ $product->name }}"
-                            data-price="{{ $product->price }}">
+                            data-price="{{ $product->price }}"
+                            data-color-id="{{ $defaultColorId }}">
                         <i class="fas fa-shopping-bag"></i>
                         {{ __('messages.add_to_cart') }}
                     </button>
@@ -66,7 +69,8 @@
                 <button class="add-cart-btn"
                         data-id="{{ $product->id }}"
                         data-name="{{ $product->name }}"
-                        data-price="{{ $product->price }}">
+                        data-price="{{ $product->price }}"
+                        data-color-id="{{ $defaultColorId }}">
                     {{ __('messages.add_to_cart') }}
                 </button>
             @else
