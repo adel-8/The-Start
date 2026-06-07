@@ -413,4 +413,18 @@ return [
     'description' => 'الوصف',
     'insufficient_stock_total' => 'فقط :stock عناصر متبقية في المخزون. يرجى تعديل الكمية الخاصة بك.',
     'insufficient_stock' => 'فقط :stock عناصر متبقية في المخزون.',
+
+    // ── التحقق من المخزون في السلة ───────────────────────
+    'cart_has_stock_issues'                   => 'بعض المنتجات في سلتك غير متوفرة حالياً. يرجى مراجعتها قبل المتابعة.',
+    'remove_oos_to_checkout'                  => 'أزل المنتجات غير المتوفرة من السلة للمتابعة إلى الدفع.',
+    'only_x_left'                             => 'لم يتبق سوى :count في المخزون!',
+    'product_unavailable_in_cart'             => ':name لم يعد متاحاً.',
+    'product_out_of_stock_in_cart'            => ':name غير متوفر حالياً. يرجى إزالته من سلتك.',
+    'product_low_stock_in_cart'               => 'لم يتبق سوى :stock وحدة من :name. تم تعديل الكمية تلقائياً.',
+    'product_no_longer_available'             => ':name لم يعد متاحاً.',
+    'product_out_of_stock_checkout'           => ':name نفذ من المخزون. يرجى إزالته من سلتك والمحاولة مجدداً.',
+    'product_insufficient_stock_checkout'     => 'لا يتوفر سوى :available وحدة من :name (طلبت :requested). يرجى تحديث سلتك.',
+    'insufficient_stock'                      => 'لا يتوفر سوى :stock وحدة.',
+    'insufficient_stock_total'                => 'الكمية الإجمالية المتوفرة :stock وحدة فقط.',
+    'please_select_color'                     => 'الرجاء اختيار اللون قبل الإضافة إلى السلة.',
 ];

@@ -20,7 +20,8 @@ class ShopController extends Controller
             'page'       => 'nullable|integer|min:1',
         ]);
 
-        $query = Product::where('status', 'active');
+        $query = Product::where('status', 'active')
+        ->with('colors');
 
         // Filter (bestseller / new)
         if ($request->filled('filter')) {

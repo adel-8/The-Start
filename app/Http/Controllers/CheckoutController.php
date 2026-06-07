@@ -33,42 +33,64 @@ class CheckoutController extends Controller
     {
         $cart = $this->getCart();
         if (empty($cart)) {
-            return redirect()->route('cart')->with('error', 'Your cart is empty.');
+            return redirect()->route('cart')->with('error', __('messages.cart_empty'));
         }
 
-        $user = Auth::user();
-        $addresses = $user ? $user->addresses : collect();
+        // ── Pre-checkout stock validation ─────────────────
+        // Check every cart item against live stock before the
+        // user even sees the checkout form.
+        $productIds    = array_column($cart, 'product_id');
+        $liveProducts  = Product::whereIn('id', $productIds)
+            ->where('status', 'active')
+            ->get()
+            ->keyBy('id');
+
+        $stockProblems = [];
+        foreach ($cart as $key => $item) {
+            $product = $liveProducts[$item['product_id']] ?? null;
+            if (!$product) {
+                $stockProblems[] = __('messages.product_unavailable_in_cart', ['name' => $item['name']]);
+            } elseif ($product->stock <= 0) {
+                $stockProblems[] = __('messages.product_out_of_stock_in_cart', ['name' => $product->name]);
+            } elseif ($product->stock < $item['quantity']) {
+                $stockProblems[] = __('messages.product_low_stock_in_cart', [
+                    'name'  => $product->name,
+                    'stock' => $product->stock,
+                ]);
+            }
+        }
+
+        if (!empty($stockProblems)) {
+            return redirect()->route('cart')
+                ->with('stock_errors', $stockProblems)
+                ->with('error', __('messages.cart_has_stock_issues'));
+        }
+        // ─────────────────────────────────────────────────
+
+        $user           = Auth::user();
+        $addresses      = $user ? $user->addresses : collect();
         $defaultAddress = $addresses->where('is_default', true)->first();
 
-        // Fetch shipping region costs
-        $settings = Setting::pluck('setting_value', 'setting_key');
+        $settings   = Setting::pluck('setting_value', 'setting_key');
         $regionCosts = [];
         if (isset($settings['shipping_region_costs'])) {
             $regionCosts = json_decode($settings['shipping_region_costs'], true);
         }
 
-        // List of Algerian wilayas (58)
         $regions = [
             'Adrar', 'Chlef', 'Laghouat', 'Oum El Bouaghi', 'Batna', 'Béjaïa', 'Biskra', 'Béchar', 'Blida', 'Bouira',
             'Tamanrasset', 'Tébessa', 'Tlemcen', 'Tiaret', 'Tizi Ouzou', 'Algiers', 'Djelfa', 'Jijel', 'Sétif', 'Saïda',
-            'Skikda', 'Sidi Bel Abbès', 'Annaba', 'Guelma', 'Constantine', 'Médéa', 'Mostaganem', 'M\'Sila', 'Mascara',
+            'Skikda', 'Sidi Bel Abbès', 'Annaba', 'Guelma', 'Constantine', 'Médéa', 'Mostaganem', "M'Sila", 'Mascara',
             'Ouargla', 'Oran', 'El Bayadh', 'Illizi', 'Bordj Bou Arréridj', 'Boumerdès', 'El Tarf', 'Tindouf', 'Tissemsilt',
             'El Oued', 'Khenchela', 'Souk Ahras', 'Tipaza', 'Mila', 'Aïn Defla', 'Naâma', 'Aïn Témouchent', 'Ghardaïa',
             'Relizane', 'Timimoun', 'Bordj Badji Mokhtar', 'Ouled Djellal', 'Béni Abbès', 'In Salah', 'In Guezzam', 'Touggourt',
-            'Djanet', 'El M\'ghair', 'El Menia'
+            "Djanet", "El M'ghair", 'El Menia',
         ];
 
-        // Get enabled payment methods from settings
         $enabledPayments = [];
-        if (($settings['payment_cod_enabled'] ?? '1') == '1') {
-            $enabledPayments[] = 'cash_on_delivery';
-        }
-        if (($settings['payment_baridimob_enabled'] ?? '1') == '1') {
-            $enabledPayments[] = 'baridimob';
-        }
-        if (($settings['payment_stripe_enabled'] ?? '0') == '1') {
-            $enabledPayments[] = 'stripe';
-        }
+        if (($settings['payment_cod_enabled'] ?? '1') == '1')      $enabledPayments[] = 'cash_on_delivery';
+        if (($settings['payment_baridimob_enabled'] ?? '1') == '1') $enabledPayments[] = 'baridimob';
+        if (($settings['payment_stripe_enabled'] ?? '0') == '1')    $enabledPayments[] = 'stripe';
 
         return view('checkout', compact(
             'cart', 'addresses', 'defaultAddress',
@@ -78,24 +100,13 @@ class CheckoutController extends Controller
 
     public function store(Request $request)
     {
-        // Get enabled payment methods from settings for validation
-        $settings = Setting::pluck('setting_value', 'setting_key')->toArray();
+        $settings        = Setting::pluck('setting_value', 'setting_key')->toArray();
         $enabledPayments = [];
-        if (($settings['payment_cod_enabled'] ?? '1') == '1') {
-            $enabledPayments[] = 'cash_on_delivery';
-        }
-        if (($settings['payment_baridimob_enabled'] ?? '1') == '1') {
-            $enabledPayments[] = 'baridimob';
-        }
-        if (($settings['payment_stripe_enabled'] ?? '0') == '1') {
-            $enabledPayments[] = 'stripe';
-        }
-        if (empty($enabledPayments)) {
-            $enabledPayments = ['cash_on_delivery'];
-        }
+        if (($settings['payment_cod_enabled'] ?? '1') == '1')      $enabledPayments[] = 'cash_on_delivery';
+        if (($settings['payment_baridimob_enabled'] ?? '1') == '1') $enabledPayments[] = 'baridimob';
+        if (($settings['payment_stripe_enabled'] ?? '0') == '1')    $enabledPayments[] = 'stripe';
+        if (empty($enabledPayments))                                 $enabledPayments   = ['cash_on_delivery'];
 
-        // FIX: use required_without instead of required_if for saved address logic
-        // FIX: email and postal_code are now optional (nullable)
         $request->validate([
             'address_id'     => 'nullable|exists:addresses,id',
             'full_name'      => 'required|string|max:255',
@@ -113,25 +124,18 @@ class CheckoutController extends Controller
 
         $cart = $this->getCart();
         if (empty($cart)) {
-            return $this->jsonResponse(false, 'Your cart is empty.', 400, $request);
+            return $this->jsonResponse(false, __('messages.cart_empty'), 400, $request);
         }
 
-        // Calculate shipping cost for the selected region
+        // Shipping cost
         $shippingCost = 0;
         if ($request->filled('region') && isset($settings['shipping_region_costs'])) {
-            $regionCosts = json_decode($settings['shipping_region_costs'], true);
-            if (isset($regionCosts[$request->region])) {
-                $shippingCost = (float) $regionCosts[$request->region];
-            }
+            $regionCosts  = json_decode($settings['shipping_region_costs'], true);
+            $shippingCost = (float) ($regionCosts[$request->region] ?? 0);
         }
 
-        // BaridiMob: store data and redirect to instructions
+        // ── BaridiMob ─────────────────────────────────────
         if ($request->payment_method === 'baridimob') {
-            Log::info('BaridiMob checkout initiated', [
-                'user_id' => Auth::id(),
-                'cart_count' => count($cart),
-                'ip' => $request->ip(),
-            ]);
             Session::put('baridimob_checkout_data', $request->except('_token'));
             Session::put('baridimob_cart', $cart);
             if ($request->filled('coupon_code')) {
@@ -140,13 +144,8 @@ class CheckoutController extends Controller
             return redirect()->route('payment.baridimob');
         }
 
-        // Stripe: redirect to Stripe checkout
+        // ── Stripe ────────────────────────────────────────
         if ($request->payment_method === 'stripe') {
-            Log::info('Stripe checkout initiated', [
-                'user_id' => Auth::id(),
-                'cart_count' => count($cart),
-                'ip' => $request->ip(),
-            ]);
             Session::put('stripe_checkout_data', $request->except('_token'));
             Session::put('stripe_cart', $cart);
             if ($request->filled('coupon_code')) {
@@ -155,38 +154,56 @@ class CheckoutController extends Controller
             return redirect()->route('stripe.checkout');
         }
 
-        // COD: create order immediately
+        // ── COD ───────────────────────────────────────────
         DB::beginTransaction();
 
         try {
-            $products = Product::whereIn('id', array_keys($cart))
+            // Lock products and check stock atomically
+            $productIds = array_map(fn($item) => $item['product_id'], $cart);
+            $products   = Product::whereIn('id', $productIds)
                 ->where('status', 'active')
                 ->lockForUpdate()
                 ->get()
                 ->keyBy('id');
 
             $subtotal = 0;
-            $items = [];
+            $items    = [];
 
-            foreach ($cart as $id => $item) {
-                $product = $products[$id] ?? null;
+            foreach ($cart as $cartKey => $item) {
+                $product = $products[$item['product_id']] ?? null;
+
+                // ── Clear error messages per product ──────
                 if (!$product) {
-                    throw new \Exception('One or more products in your cart are no longer available.');
+                    throw new \Exception(
+                        __('messages.product_no_longer_available', ['name' => $item['name']])
+                    );
+                }
+                if ($product->stock <= 0) {
+                    throw new \Exception(
+                        __('messages.product_out_of_stock_checkout', ['name' => $product->name])
+                    );
                 }
                 if ($product->stock < $item['quantity']) {
-                    throw new \Exception("Not enough stock for {$product->name}.");
+                    throw new \Exception(
+                        __('messages.product_insufficient_stock_checkout', [
+                            'name'      => $product->name,
+                            'available' => $product->stock,
+                            'requested' => $item['quantity'],
+                        ])
+                    );
                 }
 
-                $price = $product->price;
+                $price     = $product->price;
                 $subtotal += $price * $item['quantity'];
-
-                $items[] = [
+                $items[]   = [
                     'product_id' => $product->id,
                     'quantity'   => $item['quantity'],
                     'price'      => $price,
+                    'color_id'   => $item['color_id'] ?? null,
                 ];
             }
 
+            // Coupon
             $couponData = $this->couponService->validateCoupon(
                 $request->coupon_code,
                 $subtotal,
@@ -200,20 +217,16 @@ class CheckoutController extends Controller
                 $couponId = $couponData['coupon']->id;
             }
 
-            $total = max(0, $subtotal - $discount + $shippingCost);
-
+            $total  = max(0, $subtotal - $discount + $shippingCost);
             $userId = Auth::id();
 
-            // FIX: handle saved address correctly
+            // Address
             if ($request->filled('address_id')) {
-                // Use saved address — verify it belongs to the current user
                 $address = Address::where('id', $request->address_id)
                     ->where('user_id', Auth::id())
                     ->firstOrFail();
             } else {
-                // New address — look for existing or create
                 $address = null;
-
                 if ($userId) {
                     $address = Address::where('user_id', $userId)
                         ->where('address_line1', $request->address)
@@ -221,16 +234,15 @@ class CheckoutController extends Controller
                         ->where('country', 'Algeria')
                         ->first();
                 }
-
                 if (!$address) {
                     $address = Address::create([
-                        'user_id'        => $userId,
-                        'address_line1'  => $request->address,
-                        'city'           => $request->city,
-                        'state'          => $request->region,
-                        'postal_code'    => $request->postal_code,
-                        'country'        => 'Algeria',
-                        'is_default'     => false,
+                        'user_id'       => $userId,
+                        'address_line1' => $request->address,
+                        'city'          => $request->city,
+                        'state'         => $request->region,
+                        'postal_code'   => $request->postal_code,
+                        'country'       => 'Algeria',
+                        'is_default'    => false,
                     ]);
                 }
             }
@@ -254,12 +266,10 @@ class CheckoutController extends Controller
                 'delivery_type'       => $request->delivery_type ?? 'home',
                 'notes'               => $request->notes,
             ]);
+
             if ($couponId) {
                 $this->couponService->recordUsage(
-                    $couponId,
-                    $order->id,
-                    Auth::id(),
-                    $request->email
+                    $couponId, $order->id, Auth::id(), $request->email
                 );
             }
 
@@ -270,33 +280,30 @@ class CheckoutController extends Controller
                     'variation_id'      => null,
                     'quantity'          => $item['quantity'],
                     'price_at_purchase' => $item['price'],
+                    'color_id'          => $item['color_id'],
                 ]);
-
                 $products[$item['product_id']]->decrement('stock', $item['quantity']);
             }
 
-            $this->saveCart([]); // clear cart
-
+            $this->saveCart([]);
             DB::commit();
 
-            // Send order confirmation email
-            if ($order->guest_email || ($order->user && $order->user->email)) {
-                try {
-                    $email = $order->user ? $order->user->email : $order->guest_email;
+            // Send confirmation email
+            try {
+                $email = $order->user?->email ?? $order->guest_email;
+                if ($email) {
                     Mail::to($email)->send(new OrderConfirmation($order));
-                } catch (\Exception $mailEx) {
-                    Log::error('Order confirmation email failed: ' . $mailEx->getMessage());
                 }
+            } catch (\Exception $mailEx) {
+                Log::error('Order confirmation email failed: ' . $mailEx->getMessage());
             }
 
-            // Store in session for guest access
             session(['last_order_number' => $order->order_number]);
 
-            // Always return JSON — JS handles the redirect
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json([
                     'success'      => true,
-                    'message'      => 'Order placed successfully!',
+                    'message'      => __('messages.order_placed_successfully'),
                     'redirect'     => route('orders.show', $order->order_number),
                     'order_number' => $order->order_number,
                 ]);
@@ -308,12 +315,14 @@ class CheckoutController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Checkout error: ' . $e->getMessage(), [
-                'cart' => $cart,
-                'user_id' => Auth::id(),
+                'cart'        => $cart,
+                'user_id'     => Auth::id(),
                 'coupon_code' => $request->coupon_code,
             ]);
 
-            $userMessage = 'Unable to place your order at this time. Please contact support.';
+            // ── Return the real reason, not a generic message ──
+            $userMessage = $e->getMessage();
+
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
@@ -325,23 +334,13 @@ class CheckoutController extends Controller
         }
     }
 
-    
-
     public function applyCoupon(Request $request)
     {
-        Log::info('Coupon request', ['code' => $request->code]);
-
-        $request->validate([
-            'code' => 'required|string|max:50'
-        ]);
+        $request->validate(['code' => 'required|string|max:50']);
 
         $cart = $this->getCart();
-
         if (empty($cart)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cart is empty'
-            ], 400);
+            return response()->json(['success' => false, 'message' => 'Cart is empty'], 400);
         }
 
         $subtotal = 0;
@@ -352,10 +351,7 @@ class CheckoutController extends Controller
         $result = $this->couponService->validateCoupon($request->code, $subtotal, Auth::id());
 
         if (!$result['valid']) {
-            return response()->json([
-                'success' => false,
-                'message' => $result['message']
-            ], 422);
+            return response()->json(['success' => false, 'message' => $result['message']], 422);
         }
 
         session(['coupon' => $result['coupon']]);

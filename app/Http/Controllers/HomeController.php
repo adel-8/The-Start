@@ -17,12 +17,14 @@ class HomeController extends Controller
         // Best Sellers
         $bestsellers = Product::where('status', 'active')
             ->where('bestseller', 1)
+            ->with('colors')  
             ->take(8)
             ->get();
 
         // New Arrivals
         $newArrivals = Product::where('status', 'active')
             ->where('is_new', 1)
+            ->with('colors')
             ->take(8)
             ->get();
 
@@ -41,7 +43,11 @@ class HomeController extends Controller
         }
 
         if ($category) {
-            $categoryProducts = $category->products()->where('status', 'active')->take(8)->get();
+            $categoryProducts = $category->products()
+            ->where('status', 'active')
+            ->with('colors')
+            ->take(8)
+            ->get();
             $featuredCategoryName = $category->name;
         }
 

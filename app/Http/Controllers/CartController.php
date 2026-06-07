@@ -19,97 +19,122 @@ class CartController extends Controller
     public function cart()
     {
         $cart = $this->getCart();
+
+        // ── Live stock check ──────────────────────────────
+        // Attach real-time stock to every cart item so the
+        // view can warn the user before they hit checkout.
+        if (!empty($cart)) {
+            $productIds = array_column($cart, 'product_id');
+            $liveStock  = Product::whereIn('id', $productIds)
+                ->pluck('stock', 'id');          // [id => stock]
+
+            foreach ($cart as $key => &$item) {
+                $stock = $liveStock[$item['product_id']] ?? 0;
+                $item['live_stock']    = $stock;
+                $item['out_of_stock']  = $stock <= 0;
+                $item['low_stock']     = $stock > 0 && $stock < 5;
+                // Cap stored qty to available stock so subtotal is accurate
+                if ($stock > 0 && $item['quantity'] > $stock) {
+                    $item['quantity'] = $stock;
+                    // Persist the corrected quantity
+                    $this->updateItemQuantity($key, $stock);
+                }
+            }
+            unset($item);
+        }
+
         return view('cart', compact('cart'));
     }
 
     // ── Add ───────────────────────────────────────────────
 
     public function add(Request $request)
-{
-    $request->validate([
-        'product_id' => 'required|exists:products,id',
-        'quantity'   => 'nullable|integer|min:1',
-        'color_id'   => 'nullable|exists:product_colors,id',
-    ]);
-
-    $product = Product::with(['images', 'colors'])->findOrFail($request->product_id);
-    $quantity = max(1, (int) $request->quantity);
-    $colorId = $request->color_id ? (int) $request->color_id : null;
-
-    // ── Check stock before adding to cart ──
-    if ($product->stock < $quantity) {
-        $errorMsg = __('messages.insufficient_stock', ['stock' => $product->stock]);
-        if ($request->expectsJson()) {
-            return response()->json(['success' => false, 'message' => $errorMsg], 422);
-        }
-        return redirect()->back()->withErrors(['stock' => $errorMsg]);
-    }
-
-    // If product has colors, a color must be chosen
-    if ($product->colors->isNotEmpty() && !$colorId) {
-        if ($request->expectsJson()) {
-            return response()->json(['success' => false, 'message' => __('messages.please_select_color')], 422);
-        }
-        return redirect()->back()->withErrors(['color' => __('messages.please_select_color')]);
-    }
-
-    // Validate chosen color belongs to this product
-    if ($colorId && !$product->colors->contains('id', $colorId)) {
-        $colorId = null;
-    }
-
-    // Cart key
-    $cartKey = $colorId ? "{$product->id}_{$colorId}" : (string) $product->id;
-    $colorName = $colorId ? $product->colors->firstWhere('id', $colorId)?->display_name : null;
-
-    // Best image
-    $image = $product->image_url;
-    if ($colorId) {
-        $colorImg = $product->images->firstWhere('color_id', $colorId);
-        if ($colorImg) $image = $colorImg->image_path;
-    } else {
-        $primaryImg = $product->images->firstWhere('is_primary', true) ?? $product->images->first();
-        if ($primaryImg) $image = $primaryImg->image_path;
-    }
-
-    $cart = $this->getCart();
-
-    if (isset($cart[$cartKey])) {
-        $newQty = $cart[$cartKey]['quantity'] + $quantity;
-        // Re-check stock for total quantity
-        if ($product->stock < $newQty) {
-            $errorMsg = __('messages.insufficient_stock_total', ['stock' => $product->stock]);
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => $errorMsg], 422);
-            }
-            return redirect()->back()->withErrors(['stock' => $errorMsg]);
-        }
-        $cart[$cartKey]['quantity'] = $newQty;
-    } else {
-        $cart[$cartKey] = [
-            'cart_key'   => $cartKey,
-            'product_id' => $product->id,
-            'name'       => $product->name,
-            'price'      => (float) $product->price,
-            'quantity'   => $quantity,
-            'image'      => $image,
-            'color_id'   => $colorId,
-            'color_name' => $colorName,
-        ];
-    }
-
-    $this->saveCart($cart);
-
-    if ($request->expectsJson()) {
-        return response()->json([
-            'success'    => true,
-            'message'    => __('messages.product_added_to_cart'),
-            'cart_count' => $this->getCartCount(),
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'quantity'   => 'nullable|integer|min:1',
+            'color_id'   => 'nullable|exists:product_colors,id',
         ]);
+
+        $product  = Product::with(['images', 'colors'])->findOrFail($request->product_id);
+        $quantity = max(1, (int) $request->quantity);
+        $colorId  = $request->color_id ? (int) $request->color_id : null;
+
+        // ── Stock check ───────────────────────────────────
+        if ($product->stock <= 0) {
+            $msg = __('messages.out_of_stock');
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $msg], 422)
+                : redirect()->back()->withErrors(['stock' => $msg]);
+        }
+
+        if ($product->stock < $quantity) {
+            $msg = __('messages.insufficient_stock', ['stock' => $product->stock]);
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $msg], 422)
+                : redirect()->back()->withErrors(['stock' => $msg]);
+        }
+
+        // ── Color validation ──────────────────────────────
+        if ($product->colors->isNotEmpty() && !$colorId) {
+            $msg = __('messages.please_select_color');
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $msg], 422)
+                : redirect()->back()->withErrors(['color' => $msg]);
+        }
+
+        if ($colorId && !$product->colors->contains('id', $colorId)) {
+            $colorId = null;
+        }
+
+        // ── Build cart key & resolve image ───────────────
+        $cartKey   = $colorId ? "{$product->id}_{$colorId}" : (string) $product->id;
+        $colorName = $colorId ? $product->colors->firstWhere('id', $colorId)?->display_name : null;
+
+        $image = $product->image_url;
+        if ($colorId) {
+            $colorImg = $product->images->firstWhere('color_id', $colorId);
+            if ($colorImg) $image = $colorImg->image_path;
+        } else {
+            $primaryImg = $product->images->firstWhere('is_primary', true) ?? $product->images->first();
+            if ($primaryImg) $image = $primaryImg->image_path;
+        }
+
+        $cart = $this->getCart();
+
+        if (isset($cart[$cartKey])) {
+            $newQty = $cart[$cartKey]['quantity'] + $quantity;
+            if ($product->stock < $newQty) {
+                $msg = __('messages.insufficient_stock_total', ['stock' => $product->stock]);
+                return $request->expectsJson()
+                    ? response()->json(['success' => false, 'message' => $msg], 422)
+                    : redirect()->back()->withErrors(['stock' => $msg]);
+            }
+            $cart[$cartKey]['quantity'] = $newQty;
+        } else {
+            $cart[$cartKey] = [
+                'cart_key'   => $cartKey,
+                'product_id' => $product->id,
+                'name'       => $product->name,
+                'price'      => (float) $product->price,
+                'quantity'   => $quantity,
+                'image'      => $image,
+                'color_id'   => $colorId,
+                'color_name' => $colorName,
+            ];
+        }
+
+        $this->saveCart($cart);
+
+        return $request->expectsJson()
+            ? response()->json([
+                'success'    => true,
+                'message'    => __('messages.product_added_to_cart'),
+                'cart_count' => $this->getCartCount(),
+            ])
+            : redirect()->back()->with('success', __('messages.product_added_to_cart'));
     }
 
-    return redirect()->back()->with('success', __('messages.product_added_to_cart'));
-}
     // ── Update ────────────────────────────────────────────
 
     public function update(Request $request)
@@ -121,24 +146,37 @@ class CartController extends Controller
 
         $cart = $this->getCart();
 
-        if (isset($cart[$request->cart_key])) {
-            $cart[$request->cart_key]['quantity'] = $request->quantity;
-            $this->saveCart($cart);
+        if (!isset($cart[$request->cart_key])) {
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => 'Item not found'], 404)
+                : redirect()->route('cart');
         }
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true]);
+        // ── Live stock check on update ────────────────────
+        $productId = $cart[$request->cart_key]['product_id'];
+        $product   = Product::find($productId);
+
+        if ($product && $product->stock < $request->quantity) {
+            $msg = __('messages.insufficient_stock', ['stock' => $product->stock]);
+            return $request->expectsJson()
+                ? response()->json([
+                    'success'      => false,
+                    'message'      => $msg,
+                    'capped_qty'   => $product->stock,   // let JS update the input
+                ], 422)
+                : redirect()->route('cart')->with('error', $msg);
         }
 
-        return redirect()->route('cart');
+        $cart[$request->cart_key]['quantity'] = $request->quantity;
+        $this->saveCart($cart);
+
+        return $request->expectsJson()
+            ? response()->json(['success' => true])
+            : redirect()->route('cart');
     }
 
     // ── Remove ────────────────────────────────────────────
 
-    /**
-     * Route: DELETE /cart/remove/{id}
-     * {id} is the cart_key, e.g. "5" or "5_3"
-     */
     public function remove(string $id, Request $request)
     {
         $cart = $this->getCart();
@@ -148,11 +186,9 @@ class CartController extends Controller
             $this->saveCart($cart);
         }
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true]);
-        }
-
-        return redirect()->route('cart');
+        return $request->expectsJson()
+            ? response()->json(['success' => true])
+            : redirect()->route('cart');
     }
 
     // ── Clear ─────────────────────────────────────────────
@@ -161,11 +197,9 @@ class CartController extends Controller
     {
         $this->saveCart([]);
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true]);
-        }
-
-        return redirect()->route('cart');
+        return $request->expectsJson()
+            ? response()->json(['success' => true])
+            : redirect()->route('cart');
     }
 
     // ── Count (AJAX) ──────────────────────────────────────
@@ -173,5 +207,20 @@ class CartController extends Controller
     public function count()
     {
         return response()->json(['count' => $this->getCartCount()]);
+    }
+
+    // ── Private helpers ───────────────────────────────────
+
+    /**
+     * Update a single item's quantity without reloading the whole cart.
+     * Used internally to cap quantities when stock changes.
+     */
+    private function updateItemQuantity(string $cartKey, int $qty): void
+    {
+        $cart = $this->getCart();
+        if (isset($cart[$cartKey])) {
+            $cart[$cartKey]['quantity'] = $qty;
+            $this->saveCart($cart);
+        }
     }
 }
