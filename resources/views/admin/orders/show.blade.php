@@ -192,7 +192,12 @@
         <tbody>
             @forelse($order->items as $item)
                 <tr>
-                    <td>{{ $item->product?->name ?? __('admin.product_unavailable') }}</td>
+                    <td>
+                        {{ $item->product?->name ?? __('admin.product_unavailable') }}
+                        @if($item->color)
+                            <br><small style="color:var(--color-text-secondary);">Color: {{ $item->color->name }}</small>
+                        @endif
+                    </td>
                     <td>{{ $item->quantity }}</td>
                     <td>{{ format_currency($item->price_at_purchase) }}</td>
                     <td>{{ format_currency($item->price_at_purchase * $item->quantity) }}</td>
@@ -262,8 +267,6 @@
         margin: 0.5rem 0;
         font-size: 0.9rem;
     }
-
-    /* Delivery type display */
     .delivery-type-display {
         display: inline-flex;
         align-items: center;
@@ -284,7 +287,6 @@
         color: #3B82F6;
         border: 1px solid rgba(59,130,246,0.2);
     }
-
     .table-responsive {
         overflow-x: auto;
         margin-bottom: 1.5rem;

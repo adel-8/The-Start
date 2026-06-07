@@ -28,4 +28,10 @@ class OrderItem extends Model
     {
         return $this->belongsTo(Product::class);
     }
+    // app/Models/OrderItem.php
+
+    public function color()
+    {
+        return $this->belongsTo(ProductColor::class, 'color_id');
+    }
 }
