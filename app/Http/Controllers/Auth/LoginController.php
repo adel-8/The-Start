@@ -23,34 +23,40 @@ class LoginController extends Controller
         ]);
 
         if (Auth::attempt($credentials, $request->filled('remember'))) {
-            $request->session()->regenerate(); // security
+            $request->session()->regenerate();
 
-            // ---- Merge guest cart into user's cart ----
-            $sessionCart = Session::get('cart', []);
-            foreach ($sessionCart as $productId => $item) {
-                $cartItem = Cart::where('user_id', Auth::id())
-                                ->where('product_id', $productId)
-                                ->first();
-                if ($cartItem) {
-                    $cartItem->quantity += $item['quantity'];
-                    $cartItem->save();
-                } else {
-                    Cart::create([
-                        'user_id'    => Auth::id(),
-                        'product_id' => $productId,
-                        'quantity'   => $item['quantity'],
-                    ]);
+            // Merge guest cart into user's cart
+            $sessionCart = session('cart', []);
+            if (!empty($sessionCart)) {
+                $userCart = Cart::where('user_id', Auth::id())->get()->keyBy('cart_key');
+                foreach ($sessionCart as $cartKey => $item) {
+                    if ($userCart->has($cartKey)) {
+                        $userCart[$cartKey]->update(['quantity' => $userCart[$cartKey]->quantity + $item['quantity']]);
+                    } else {
+                        Cart::create([
+                            'user_id'      => Auth::id(),
+                            'cart_key'     => $cartKey,
+                            'product_id'   => $item['product_id'],
+                            'color_id'     => $item['color_id'] ?? null,
+                            'quantity'     => $item['quantity'],
+                            'product_name' => $item['name'],
+                            'price'        => $item['price'],
+                            'image_path'   => $item['image'],
+                            'color_name'   => $item['color_name'] ?? null,
+                        ]);
+                    }
                 }
+                session()->forget('cart');
             }
-            Session::forget('cart');
-            // -------------------------------------------
 
+            // Redirect to intended page or home
             return redirect()->intended(route('home'));
         }
 
+        // Authentication failed
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
-        ])->withInput();
+        ])->onlyInput('email');
     }
 
     public function logout(Request $request)

@@ -36,7 +36,9 @@
                                 </div>
                             </div>
                             <div class="item-subtotal">
-                                {{ format_currency($item['price'] * $item['quantity']) }}
+                                <span class="subtotal-value" data-price="{{ $item['price'] }}" data-qty="{{ $item['quantity'] }}">
+                                    {{ format_currency($item['price'] * $item['quantity']) }}
+                                </span>
                             </div>
                             <div class="item-actions">
                                 <button class="remove-item" data-id="{{ $id }}" title="{{ __('messages.remove') }}">

@@ -86,15 +86,30 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                // Find the cart item row
                 const item = document.querySelector(`.cart-item[data-id="${cartKey}"]`);
                 if (item) {
+                    // Update the quantity input value
                     const input = item.querySelector('.qty-input');
                     input.value = newQuantity;
+                    // Update the item subtotal display (price * quantity)
+                    const priceElem = item.querySelector('.item-price');
+                    const price = parseFloat(priceElem.innerText.replace(/[^\d.-]/g, ''));
+                    const newSubtotal = price * newQuantity;
+                    const subtotalSpan = item.querySelector('.subtotal-value');
+                    if (subtotalSpan) subtotalSpan.innerText = newSubtotal.toFixed(2);
+                    // Recalculate the whole cart totals
                     updateTotals();
                     updateCartCount();
                 }
             } else {
-                showToast('Failed to update quantity', true);
+                showToast(data.message || 'Failed to update quantity', true);
+                // Revert the input value to the old quantity
+                const item = document.querySelector(`.cart-item[data-id="${cartKey}"]`);
+                if (item) {
+                    const oldQty = item.querySelector('.qty-input').getAttribute('data-old') || '1';
+                    item.querySelector('.qty-input').value = oldQty;
+                }
             }
         })
         .catch(error => {
@@ -161,29 +176,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // ---- Event handlers ----
     function handleDecrease(e) {
         const btn = e.currentTarget;
-        const productId = btn.getAttribute('data-id');
-        const input = document.querySelector(`.cart-item[data-id="${productId}"] .qty-input`);
+        const cartKey = btn.getAttribute('data-id');
+        const input = document.querySelector(`.cart-item[data-id="${cartKey}"] .qty-input`);
         let current = parseInt(input.value);
         if (current > 1) {
-            updateQuantity(productId, current - 1);
+            input.setAttribute('data-old', current); // store old value
+            updateQuantity(cartKey, current - 1);
         }
     }
 
     function handleIncrease(e) {
         const btn = e.currentTarget;
-        const productId = btn.getAttribute('data-id');
-        const input = document.querySelector(`.cart-item[data-id="${productId}"] .qty-input`);
+        const cartKey = btn.getAttribute('data-id');
+        const input = document.querySelector(`.cart-item[data-id="${cartKey}"] .qty-input`);
         let current = parseInt(input.value);
-        updateQuantity(productId, current + 1);
+        input.setAttribute('data-old', current);
+        updateQuantity(cartKey, current + 1);
     }
 
     function handleInputChange(e) {
         const input = e.currentTarget;
-        const productId = input.getAttribute('data-id');
+        const cartKey = input.getAttribute('data-id');
         let newVal = parseInt(input.value);
         if (isNaN(newVal) || newVal < 1) newVal = 1;
         input.value = newVal;
-        updateQuantity(productId, newVal);
+        input.setAttribute('data-old', newVal);
+        updateQuantity(cartKey, newVal);
     }
 
     function handleRemove(e) {
