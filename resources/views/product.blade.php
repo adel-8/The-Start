@@ -536,8 +536,6 @@
     @vite('resources/js/product.js')
     <script>
     (function () {
-        const qtyInput = document.getElementById('quantity');
-
         /* ── Tabs ── */
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -553,7 +551,7 @@
             });
         });
 
-        /* ── Gallery (same as before, unchanged) ── */
+        /* ── Gallery slider and thumbnails ── */
         let galleryImages = @json($allImages->pluck('url')->toArray());
         const mainImage = document.getElementById('product-main-image');
         const prevBtn = document.getElementById('galleryPrev');
@@ -613,83 +611,7 @@
             });
         });
 
-        /* ── FIX: Live color reading & single handler ── */
-        const addCartBtn = document.querySelector('.add-cart-btn:not(.disabled)');
-        if (addCartBtn) {
-            // Remove any previously attached handlers (clean slate)
-            const newBtn = addCartBtn.cloneNode(true);
-            addCartBtn.parentNode.replaceChild(newBtn, addCartBtn);
-            const finalBtn = newBtn;
-
-            finalBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-
-                // Read the currently active swatch LIVE – this fixes the stale colour bug
-                const activeSwatch = document.querySelector('.color-swatch.active');
-                const selectedColorId = activeSwatch ? activeSwatch.dataset.colorId : null;
-
-                const productId = this.dataset.id;
-                const productName = this.dataset.name;
-                const quantity = qtyInput ? parseInt(qtyInput.value) : 1;
-
-                if (swatches.length > 1 && !selectedColorId) {
-                    showToast('Please select a colour', true);
-                    return;
-                }
-
-                fetch('/cart/add', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    },
-                    body: JSON.stringify({
-                        product_id: productId,
-                        quantity: quantity,
-                        color_id: selectedColorId || null
-                    })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast(`🛍️ ${productName} added to cart`);
-                        updateCartCount();
-                    } else {
-                        showToast(data.message || 'Failed to add item', true);
-                    }
-                })
-                .catch(() => showToast('Network error, please try again', true));
-            });
-        }
-
-        const buyNow = document.getElementById('buyNowBtn');
-        if (buyNow) {
-            buyNow.addEventListener('click', () => {
-                const addBtn = document.querySelector('.add-cart-btn:not(.disabled)');
-                if (addBtn) addBtn.click();
-                setTimeout(() => window.location.href = '{{ route("cart") }}', 600);
-            });
-        }
-
-        function showToast(message, isError = false) {
-            document.querySelector('.toast-notify')?.remove();
-            const t = document.createElement('div');
-            t.className = 'toast-notify';
-            t.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> ${message}`;
-            document.body.appendChild(t);
-            setTimeout(() => t.remove(), 2000);
-        }
-
-        function updateCartCount() {
-            fetch('/cart/count', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(r => r.json())
-                .then(data => {
-                    const counter = document.querySelector('.cart-count');
-                    if (counter) counter.textContent = data.count;
-                })
-                .catch(console.error);
-        }
+        // No add-to-cart handler here – it's now handled by global.js
     })();
     </script>
 @endpush

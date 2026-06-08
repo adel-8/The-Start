@@ -31,11 +31,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Helper: show toast
+    // Helper: show toast (kept for buy‑now button, but global.js already provides it)
     function showToast(message, isError = false) {
         let toast = document.querySelector('.toast-notify');
         if (toast) toast.remove();
-
         toast = document.createElement('div');
         toast.className = 'toast-notify';
         toast.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> ${message}`;
@@ -48,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return `${currencySymbol} ${parseFloat(value).toFixed(2)}`;
     }
 
-    // Update cart count in navbar
+    // Update cart count in navbar (kept for buy‑now button)
     function updateCartCount() {
         fetch('/cart/count', {
             method: 'GET',
@@ -62,62 +61,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (mobileCount) mobileCount.textContent = data.count;
         })
         .catch(error => console.error('Error updating cart count:', error));
-    }
-
-    // Add to cart button (AJAX)
-    const addCartBtn = document.querySelector('.add-cart-btn:not(.disabled)');
-    if (addCartBtn) {
-        addCartBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-
-            // Prevent multiple rapid clicks
-            if (this.disabled) return;
-            this.disabled = true;
-
-            const productId = this.getAttribute('data-id');
-            const productName = this.getAttribute('data-name');
-            const productPrice = this.getAttribute('data-price');
-            let quantity = quantityInput ? parseInt(quantityInput.value, 10) : 1;
-            if (isNaN(quantity) || quantity < 1) quantity = 1;
-
-            console.log(`Adding product ${productId}, quantity ${quantity}`); // debug
-
-            if (!productId) {
-                showToast('Product ID missing', true);
-                this.disabled = false;
-                return;
-            }
-
-            fetch('/cart/add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({
-                    product_id: productId,
-                    quantity: quantity
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast(`🛍️ ${productName} (x${quantity}) added to cart — ${formatCurrency(productPrice * quantity)}`);
-                    updateCartCount();
-                } else {
-                    showToast(data.message || 'Failed to add item', true);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('Network error, please try again', true);
-            })
-            .finally(() => {
-                // Re-enable button after a short delay
-                setTimeout(() => { addCartBtn.disabled = false; }, 500);
-            });
-        });
     }
 
     // Buy Now button
@@ -134,32 +77,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // First add to cart, then redirect to checkout
-            fetch('/cart/add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({
-                    product_id: productId,
-                    quantity: parseInt(quantity)
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = '/checkout';
-                } else {
-                    showToast(data.message || 'Failed to add item', true);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('Network error, please try again', true);
-            });
+            // Trigger the global add-to-cart handler by simulating a click on the add button
+            const addBtn = document.querySelector('.add-cart-btn:not(.disabled)');
+            if (addBtn) addBtn.click();
+
+            setTimeout(() => window.location.href = '/checkout', 600);
         });
     }
 });
-
