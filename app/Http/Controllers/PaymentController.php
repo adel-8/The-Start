@@ -96,7 +96,8 @@ class PaymentController extends Controller
         DB::beginTransaction();
 
         try {
-            $productIds = array_keys($cart);
+            // Get all product IDs from cart items
+            $productIds = array_column($cart, 'product_id');
             $products = Product::whereIn('id', $productIds)
                 ->where('status', 'active')
                 ->lockForUpdate()
@@ -106,7 +107,8 @@ class PaymentController extends Controller
             $subtotal = 0;
             $items = [];
 
-            foreach ($cart as $id => $item) {
+            foreach ($cart as $item) {
+                // FIX: Use the stored product_id, not the composite cart key
                 $product = $products[$item['product_id']] ?? null;
                 if (!$product) {
                     throw new \Exception('One or more products in your cart are no longer available.');
@@ -144,7 +146,7 @@ class PaymentController extends Controller
             }
             $total = max(0, $subtotal - $discount + $shippingCost);
 
-            // Handle address – FIXED for saved addresses
+            // Handle address – supports saved address
             $userId = Auth::id();
             $address = null;
 
@@ -214,6 +216,7 @@ class PaymentController extends Controller
                     'variation_id'      => null,
                     'quantity'          => $item['quantity'],
                     'price_at_purchase' => $item['price'],
+                    'color_id'          => $item['color_id'],
                 ]);
 
                 $products[$item['product_id']]->decrement('stock', $item['quantity']);
@@ -246,9 +249,19 @@ class PaymentController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('BaridiMob order creation failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            // 🔥 Force display even if debug is off
-            dd($e->getMessage(), $e->getTraceAsString());
+            Log::error('BaridiMob order creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'checkoutData' => $checkoutData,
+                'cart' => $cart,
+            ]);
+
+            // Show detailed error in debug mode
+            if (config('app.debug')) {
+                return back()->withInput()->with('error', 'DEBUG: ' . $e->getMessage());
+            }
+
+            return back()->with('error', 'Failed to create order. Please contact support.');
         }
     }
 }
