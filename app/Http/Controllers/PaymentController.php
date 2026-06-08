@@ -242,14 +242,9 @@ class PaymentController extends Controller
                 ->with('success', 'Payment proof uploaded! Your order has been placed.');
 
         } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('BaridiMob order creation failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'checkoutData' => $checkoutData,
-                'cart' => $cart,
-            ]);
-            return back()->with('error', 'Failed to create order. Please contact support.');
-        }
+                DB::rollBack();
+                // TEMPORARY: Dump and die to see the real error
+                dd($e->getMessage(), $e->getTraceAsString());
+            }
     }
 }
