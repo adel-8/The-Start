@@ -107,7 +107,7 @@ class PaymentController extends Controller
             $items = [];
 
             foreach ($cart as $id => $item) {
-                $product = $products[$id] ?? null;
+                $product = $products[$item['product_id']] ?? null;
                 if (!$product) {
                     throw new \Exception('One or more products in your cart are no longer available.');
                 }
