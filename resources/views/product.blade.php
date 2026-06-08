@@ -532,13 +532,14 @@
 </style>
 @endpush
 
+
 @push('scripts')
 @vite('resources/js/product.js')
 <script>
 (function () {
     const qtyInput = document.getElementById('quantity');
 
-    /* ── Tabs (unchanged) ── */
+    /* ── Tabs ── */
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const target = btn.dataset.tab;
@@ -553,108 +554,89 @@
         });
     });
 
-    /* ── Gallery (unchanged) ── */
+    /* ── Gallery ── */
     let galleryImages = @json($allImages->pluck('url')->toArray());
-    const mainImage     = document.getElementById('product-main-image');
-    const prevBtn       = document.getElementById('galleryPrev');
-    const nextBtn       = document.getElementById('galleryNext');
-    const thumbContainer = document.getElementById('galleryThumbnails');
-    let currentIndex = 0;
+    const mainImg      = document.getElementById('product-main-image');
+    const prevBtn      = document.getElementById('galleryPrev');
+    const nextBtn      = document.getElementById('galleryNext');
+    const thumbWrap    = document.getElementById('galleryThumbnails');
+    let currentIndex   = 0;
 
-    function updateGallery(index) {
-        if (!galleryImages[index]) return;
-        mainImage.src = galleryImages[index];
-        thumbContainer?.querySelectorAll('.thumbnail').forEach((t, i) =>
-            t.classList.toggle('active', i === index)
-        );
-        currentIndex = index;
+    function updateGallery(idx) {
+        if (!galleryImages[idx]) return;
+        mainImg.src = galleryImages[idx];
+        thumbWrap?.querySelectorAll('.thumbnail').forEach((t, i) =>
+            t.classList.toggle('active', i === idx));
+        currentIndex = idx;
     }
 
     prevBtn?.addEventListener('click', () =>
-        updateGallery((currentIndex - 1 + galleryImages.length) % galleryImages.length)
-    );
+        updateGallery((currentIndex - 1 + galleryImages.length) % galleryImages.length));
     nextBtn?.addEventListener('click', () =>
-        updateGallery((currentIndex + 1) % galleryImages.length)
-    );
-    thumbContainer?.querySelectorAll('.thumbnail').forEach((thumb, idx) =>
-        thumb.addEventListener('click', () => updateGallery(idx))
-    );
+        updateGallery((currentIndex + 1) % galleryImages.length));
+    thumbWrap?.querySelectorAll('.thumbnail').forEach((t, i) =>
+        t.addEventListener('click', () => updateGallery(i)));
 
-    /* ── Color swatches (unchanged logic, but DON'T update a stale variable) ── */
-    const swatches       = document.querySelectorAll('.color-swatch');
+    /* ── Color swatches ── */
+    const swatches      = document.querySelectorAll('.color-swatch');
     const originalImages = galleryImages.slice();
 
     swatches.forEach(swatch => {
         swatch.addEventListener('click', () => {
-            const raw = swatch.dataset.images;
+            const raw  = swatch.dataset.images;
             const imgs = (raw && raw !== '[]') ? JSON.parse(raw) : [];
             galleryImages = imgs.length ? imgs : originalImages;
 
-            if (thumbContainer) {
-                thumbContainer.innerHTML = '';
-                galleryImages.forEach((img, idx) => {
+            if (thumbWrap) {
+                thumbWrap.innerHTML = '';
+                galleryImages.forEach((img, i) => {
                     const d = document.createElement('div');
-                    d.className = 'thumbnail' + (idx === 0 ? ' active' : '');
+                    d.className = 'thumbnail' + (i === 0 ? ' active' : '');
                     d.innerHTML = `<img src="${img}" alt="">`;
-                    d.addEventListener('click', () => updateGallery(idx));
-                    thumbContainer.appendChild(d);
+                    d.addEventListener('click', () => updateGallery(i));
+                    thumbWrap.appendChild(d);
                 });
             }
-
             updateGallery(0);
             swatches.forEach(s => s.classList.remove('active'));
             swatch.classList.add('active');
-            // NOTE: we no longer maintain a stale selectedColorId variable here.
-            // doAddToCart() reads the active swatch live at call time instead.
         });
     });
 
-    /* ── FIX: Clone add-cart-btn to strip product.js handlers ──────────────────
-       product.js registers its own click handler on .add-cart-btn.
-       Cloning the node removes all previously attached event listeners,
-       so only ONE handler (below) will ever fire per click.               ── */
-    const rawBtn = document.querySelector('.add-cart-btn:not(.disabled)');
-    let addCartBtn = null;
-    if (rawBtn) {
-        const clean = rawBtn.cloneNode(true);
-        rawBtn.parentNode.replaceChild(clean, rawBtn);
-        addCartBtn = clean;
-    }
+    /* ══════════════════════════════════════════════════════
+       CART — three-part fix
+       ══════════════════════════════════════════════════════ */
+    const addCartBtn = document.querySelector('.add-cart-btn:not(.disabled)');
+    let isAdding = false;
 
-    let isAdding = false; // prevents rapid double-clicks on either button
-
-    /* ── FIX: Shared function — called directly, never via addBtn.click() ── */
     function doAddToCart(quantity) {
         if (isAdding || !addCartBtn) return;
 
-        // FIX: read color from DOM right now, not from a stale closure variable
+        /* Read active color at call-time (fixes stale closure bug) */
         const activeSwatch  = document.querySelector('.color-swatch.active');
-        const selectedColorId = activeSwatch?.dataset.colorId || null;
+        const selectedColor = activeSwatch?.dataset.colorId || null;
 
-        const productId   = addCartBtn.getAttribute('data-id');
-        const productName = addCartBtn.getAttribute('data-name');
-
-        if (swatches.length > 1 && !selectedColorId) {
+        if (swatches.length > 1 && !selectedColor) {
             showToast('{{ __("messages.please_select_color") }}', true);
             return;
         }
 
         isAdding = true;
-        const originalHTML  = addCartBtn.innerHTML;
+        const saved = addCartBtn.innerHTML;
         addCartBtn.disabled = true;
         addCartBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
         fetch('/cart/add', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type':     'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'X-CSRF-TOKEN':     document.querySelector('meta[name="csrf-token"]').content,
             },
             body: JSON.stringify({
-                product_id: productId,
-                quantity:   parseInt(quantity),
-                color_id:   selectedColorId || null,
+                product_id: addCartBtn.dataset.id,
+                quantity:   parseInt(quantity) || 1,
+                color_id:   selectedColor || null,
             }),
         })
         .then(r => r.json())
@@ -662,64 +644,62 @@
             if (data.success) {
                 addCartBtn.innerHTML = '<i class="fas fa-check"></i>';
                 addCartBtn.classList.add('btn-success');
-                showToast(`🛍️ ${productName} {{ __("messages.product_added_to_cart") }}`);
-                // Trigger navbar badge bounce (wired in app.blade.php)
+                showToast(`🛍️ ${addCartBtn.dataset.name} {{ __("messages.product_added_to_cart") }}`);
                 document.dispatchEvent(new CustomEvent('cartUpdated'));
-                updateCartCount();
+                fetch('/cart/count', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(r => r.json())
+                    .then(d => { const el = document.querySelector('.cart-count'); if (el) el.textContent = d.count; });
                 setTimeout(() => {
-                    addCartBtn.innerHTML = originalHTML;
+                    addCartBtn.innerHTML = saved;
                     addCartBtn.classList.remove('btn-success');
                     addCartBtn.disabled = false;
                     isAdding = false;
                 }, 1800);
             } else {
-                addCartBtn.innerHTML = originalHTML;
+                addCartBtn.innerHTML = saved;
                 addCartBtn.disabled  = false;
                 isAdding = false;
                 showToast(data.message || 'Failed to add item', true);
             }
         })
         .catch(() => {
-            addCartBtn.innerHTML = originalHTML;
+            addCartBtn.innerHTML = saved;
             addCartBtn.disabled  = false;
             isAdding = false;
             showToast('Network error, please try again', true);
         });
     }
 
-    /* ── Add to cart button ── */
-    addCartBtn?.addEventListener('click', e => {
+    /* FIX 1 — stopImmediatePropagation() blocks product.js's handler
+       product.js is an ES module (deferred), so it registers its handler
+       AFTER this inline script. stopImmediatePropagation() stops any
+       handler registered after this one from firing on the same click. */
+    addCartBtn?.addEventListener('click', function (e) {
         e.preventDefault();
+        e.stopImmediatePropagation(); // ← blocks product.js handler
         doAddToCart(qtyInput?.value || 1);
     });
 
-    /* ── FIX: Buy Now calls doAddToCart() directly — NOT addBtn.click() ──
-       addBtn.click() was the root cause of the double-add.               ── */
+    /* FIX 2 — Buy Now calls doAddToCart() directly.
+       The old addBtn.click() fired every handler on the button = double add.
+       Direct call = exactly one AJAX request, always. */
     const buyNow = document.getElementById('buyNowBtn');
     buyNow?.addEventListener('click', () => {
         doAddToCart(qtyInput?.value || 1);
-        // Redirect to cart after a brief delay so the toast is visible
         setTimeout(() => window.location.href = '{{ route("cart") }}', 600);
     });
 
-    /* ── Helpers ── */
-    function showToast(message, isError = false) {
+    /* ── Toast ── */
+    function showToast(msg, isError = false) {
         document.querySelector('.toast-notify')?.remove();
         const t = document.createElement('div');
         t.className = 'toast-notify' + (isError ? ' toast-error' : '');
-        t.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> ${message}`;
+        t.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> ${msg}`;
         document.body.appendChild(t);
         setTimeout(() => t.remove(), 2400);
     }
 
-    function updateCartCount() {
-        fetch('/cart/count', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(r => r.json())
-            .then(data => {
-                const el = document.querySelector('.cart-count');
-                if (el) el.textContent = data.count;
-            });
-    }
 })();
 </script>
+
 @endpush

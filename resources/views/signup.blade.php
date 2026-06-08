@@ -5,7 +5,6 @@
 @push('styles')
     @vite('resources/css/signUp.css')
     <style>
-        /* Force fixed logo size */
         .brand-logo {
             width: 80px;
             height: 80px;
@@ -21,6 +20,18 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
+        }
+        .guest-btn {
+            margin-top: 1rem;
+            text-align: center;
+            display: block;
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .guest-btn:hover {
+            color: var(--gold);
+            text-decoration: underline;
         }
     </style>
 @endpush
@@ -44,11 +55,7 @@
       @csrf
       @if ($errors->any())
         <div class="error-messages">
-          <ul>
-            @foreach ($errors->all() as $error)
-              <li style="color: red;">{{ $error }}</li>
-            @endforeach
-          </ul>
+          <ul>@foreach ($errors->all() as $error)<li style="color: red;">{{ $error }}</li>@endforeach</ul>
         </div>
       @endif
 
@@ -105,15 +112,21 @@
             <i class="fab fa-google"></i> {{ __('messages.continue_with_google') }}
         </a>
       @endif
-      
-      @if(isset($settings['enable_guest_checkout']) && $settings['enable_guest_checkout'])
-        <a href="{{ route('/') }}" class="social-btn" id="signinRedirect">{{ __('messages.continue_as_guest') }}</a>
-      @endif
     </div>
+
+    {{-- Continue as Guest button --}}
+    @php
+        $guestEnabled = isset($settings['enable_guest_checkout']) ? $settings['enable_guest_checkout'] : true;
+    @endphp
+    @if($guestEnabled)
+        <div class="guest-btn">
+            <a href="{{ route('Shop') }}" class="guest-link">{{ __('messages.continue_as_guest') }}</a>
+        </div>
+    @endif
 
     <div class="signin-prompt">
       {!! __('messages.already_have_account', [
-          'link' => '<a href="'.route('signin').'" class="signin-link" id="signinRedirect">'.__('messages.sign_in').'</a>'
+          'link' => '<a href="'.route('signin').'" class="signin-link">'.__('messages.sign_in').'</a>'
       ]) !!}
     </div>
   </div>

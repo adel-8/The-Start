@@ -5,7 +5,6 @@
 @push('styles')
     @vite('resources/css/signIn.css')
     <style>
-        /* Force fixed logo size */
         .brand-logo {
             width: 80px;
             height: 80px;
@@ -22,6 +21,18 @@
             height: 100%;
             object-fit: contain;
         }
+        .guest-btn {
+            margin-top: 1rem;
+            text-align: center;
+            display: block;
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .guest-btn:hover {
+            color: var(--gold);
+            text-decoration: underline;
+        }
     </style>
 @endpush
 
@@ -34,7 +45,6 @@
           <img src="{{ asset($settings['signin_brand_logo']) }}" alt="{{ __('messages.site_logo') }}" class="brand-logo-img">
         </div>
       @elseif(isset($settings['signup_brand_logo']) && $settings['signup_brand_logo'])
-        {{-- Fallback to signup logo if signin logo not set --}}
         <div class="brand-logo">
           <img src="{{ asset($settings['signup_brand_logo']) }}" alt="{{ __('messages.site_logo') }}" class="brand-logo-img">
         </div>
@@ -47,14 +57,9 @@
 
     <form method="POST" action="{{ route('signin') }}">
       @csrf
-
       @if ($errors->any())
         <div class="error-messages">
-            <ul>
-                @foreach ($errors->all() as $error)
-                    <li style="color: red;">{{ $error }}</li>
-                @endforeach
-            </ul>
+          <ul>@foreach ($errors->all() as $error)<li style="color: red;">{{ $error }}</li>@endforeach</ul>
         </div>
       @endif
 
@@ -92,11 +97,20 @@
             <i class="fab fa-google"></i> {{ __('messages.continue_with_google') }}
         </a>
       @endif
-      <!-- GitHub login removed as requested -->
     </div>
 
+    {{-- Continue as Guest button --}}
+    @php
+        $guestEnabled = isset($settings['enable_guest_checkout']) ? $settings['enable_guest_checkout'] : true;
+    @endphp
+    @if($guestEnabled)
+        <div class="guest-btn">
+            <a href="{{ route('Shop') }}" class="guest-link">{{ __('messages.continue_as_guest') }}</a>
+        </div>
+    @endif
+
     <div class="signup-prompt">
-      {!! __('messages.no_account_yet', ['link' => '<a href="'.route('signup').'" class="signup-link" id="signupRedirect">'.__('messages.create_account').'</a>']) !!}
+      {!! __('messages.no_account_yet', ['link' => '<a href="'.route('signup').'" class="signup-link">'.__('messages.create_account').'</a>']) !!}
     </div>
   </div>
 </div>
