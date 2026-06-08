@@ -18,42 +18,56 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(console.error);
     }
 
-    document.querySelectorAll('.add-cart-btn:not(.disabled)').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            if (this.disabled) return;
-            this.disabled = true;
+    // Delegated listener for Add to Cart buttons
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.add-cart-btn:not(.disabled)');
+        if (!btn) return;
 
-            const productId = this.dataset.id;
-            const productName = this.dataset.name;
-            const colorId = this.dataset.colorId || null;
-            const quantity = 1; // product cards always add 1
+        // Skip the main product button on the product detail page
+        if (btn.closest('.product-details')) return;
 
-            fetch('/cart/add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({
-                    product_id: productId,
-                    quantity: quantity,
-                    color_id: colorId
-                })
+        e.preventDefault();
+        if (btn.disabled) return;
+        btn.disabled = true;
+
+        const productId = btn.dataset.id;
+        const productName = btn.dataset.name;
+        const colorId = btn.dataset.colorId || null;
+        const quantity = 1; // product cards always add 1
+
+        fetch('/cart/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                product_id: productId,
+                quantity: quantity,
+                color_id: colorId
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    showToast(`🛍️ ${productName} added to cart`);
-                    updateCartCount();
-                    document.dispatchEvent(new CustomEvent('cartUpdated'));
-                } else {
-                    showToast(data.message || 'Failed to add item', true);
-                }
-            })
-            .catch(() => showToast('Network error, please try again', true))
-            .finally(() => setTimeout(() => this.disabled = false, 500));
-        });
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`🛍️ ${productName} added to cart`);
+                updateCartCount();
+                document.dispatchEvent(new CustomEvent('cartUpdated'));
+            } else {
+                showToast(data.message || 'Failed to add item', true);
+            }
+        })
+        .catch(() => showToast('Network error, please try again', true))
+        .finally(() => setTimeout(() => btn.disabled = false, 500));
+    });
+
+    // Delegated listener for Details buttons
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.details-btn');
+        if (!btn) return;
+        e.preventDefault();
+        const slug = btn.dataset.slug;
+        if (slug) window.location.href = `/product/${slug}`;
     });
 });
