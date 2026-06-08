@@ -251,6 +251,28 @@
 .slider-next { right: 16px; }
 [dir="rtl"] .slider-prev { left: auto; right: 16px; }
 [dir="rtl"] .slider-next { right: auto; left: 16px; }
+/* ========== VIEW MORE CARD – PREMIUM EFFECT ========== */
+.view-more-card {
+    transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1),
+                box-shadow 0.4s ease,
+                border-color 0.3s ease;
+    border: 1px solid var(--color-border);
+}
+.view-more-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12), 0 0 18px rgba(201, 169, 110, 0.4);
+    border-color: var(--gold, #C9A96E);
+}
+.view-more-icon i {
+    transition: transform 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+    display: inline-block;
+}
+.view-more-card:hover .view-more-icon i {
+    transform: translateX(6px);
+}
+[dir="rtl"] .view-more-card:hover .view-more-icon i {
+    transform: translateX(-6px);
+}
 </style>
 @endpush
 
