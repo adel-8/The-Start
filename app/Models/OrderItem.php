@@ -13,6 +13,7 @@ class OrderItem extends Model
         'variation_id',
         'quantity',
         'price_at_purchase',
+        'color_id', 
     ];
 
     protected $casts = [
