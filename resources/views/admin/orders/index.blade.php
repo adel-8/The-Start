@@ -15,7 +15,7 @@
     <div class="alert alert-danger">{{ session('error') }}</div>
 @endif
 
-<!-- Filter Bar (optional, keep as you had) -->
+<!-- Filter Bar -->
 <div class="orders-filters">
     <form method="GET" action="{{ route('admin.orders.index') }}" class="filter-form">
         <div class="filter-group">
@@ -40,7 +40,7 @@
 <div class="table-responsive">
     <table class="admin-table">
         <thead>
-             <tr>
+            <tr>
                 <th>{{ __('admin.order_number') }}</th>
                 <th>{{ __('admin.customer') }}</th>
                 <th>{{ __('admin.total') }}</th>
@@ -50,7 +50,7 @@
                 <th>{{ __('admin.proof') }}</th>
                 <th>{{ __('admin.date') }}</th>
                 <th>{{ __('admin.actions') }}</th>
-             </tr>
+            </tr>
         </thead>
         <tbody>
             @forelse($orders as $order)
@@ -71,7 +71,9 @@
                     <td><span class="badge payment-{{ $order->payment_status }}">{{ __('admin.payment_status_' . $order->payment_status) }}</span></td>
                     <td>
                         @if($order->payment_method == 'baridimob' && $order->payment_proof)
-                            <a href="{{ asset('storage/' . $order->payment_proof) }}" target="_blank" class="btn-sm btn-info">{{ __('admin.view_proof') }}</a>
+                            <a href="{{ route('admin.orders.proof', $order) }}" target="_blank" class="btn-sm btn-info">
+                                <i class="fas fa-eye"></i> {{ __('admin.view_proof') }}
+                            </a>
                         @else
                             —
                         @endif
