@@ -96,6 +96,7 @@
 @endsection
 
 @push('styles')
+@vite('resources/css/admin.css')
 <style>
     .orders-filters {
         background: var(--color-surface);

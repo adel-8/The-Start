@@ -100,6 +100,7 @@
 @endsection
 
 @push('styles')
+@vite('resources/css/admin.css')
 <style>
     .create-banner-header {
         display: flex;
