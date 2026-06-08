@@ -428,4 +428,5 @@ return [
     'insufficient_stock_total'                => 'الكمية الإجمالية المتوفرة :stock وحدة فقط.',
     'please_select_color'                     => 'الرجاء اختيار اللون قبل الإضافة إلى السلة.',
     'checkout_error_generic' => 'غير قادر على وضع طلبك في هذا الوقت. يرجى الاتصال بالدعم.',
+    'status' => 'الحالة',
 ];

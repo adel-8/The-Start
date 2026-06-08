@@ -403,4 +403,5 @@ return [
     'insufficient_stock_total' => 'Only :stock unit(s) available in total.',
     'please_select_color' => 'Please select a color before adding to cart.',
     'checkout_error_generic' => 'Unable to place your order at this time. Please contact support.',
+    'status' => 'Status'
 ];

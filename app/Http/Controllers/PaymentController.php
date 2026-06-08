@@ -252,6 +252,12 @@ class PaymentController extends Controller
                 'checkoutData' => $checkoutData,
                 'cart' => $cart,
             ]);
+            
+            // 🔥 TEMPORARY: show the real error when APP_DEBUG=true
+            if (config('app.debug')) {
+                return back()->withInput()->withErrors(['debug' => $e->getMessage()]);
+            }
+            
             return back()->with('error', 'Failed to create order. Please contact support.');
         }
     }
