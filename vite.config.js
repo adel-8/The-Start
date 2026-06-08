@@ -37,6 +37,7 @@ export default defineConfig({
                 'resources/js/Shop.js',
                 'resources/js/signin.js',
                 'resources/js/signup.js',
+                'resources/js/cards.js',
             ],
             refresh: true,
         }),

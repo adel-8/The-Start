@@ -7,22 +7,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (quantityInput && decreaseBtn && increaseBtn) {
         const min = parseInt(quantityInput.min) || 1;
         const max = parseInt(quantityInput.max) || 999;
-
-        decreaseBtn.addEventListener('click', function() {
+        decreaseBtn.addEventListener('click', () => {
             let current = parseInt(quantityInput.value);
-            if (current > min) {
-                quantityInput.value = current - 1;
-            }
+            if (current > min) quantityInput.value = current - 1;
         });
-
-        increaseBtn.addEventListener('click', function() {
+        increaseBtn.addEventListener('click', () => {
             let current = parseInt(quantityInput.value);
-            if (current < max) {
-                quantityInput.value = current + 1;
-            }
+            if (current < max) quantityInput.value = current + 1;
         });
-
-        quantityInput.addEventListener('change', function() {
+        quantityInput.addEventListener('change', () => {
             let val = parseInt(this.value);
             if (isNaN(val)) val = min;
             if (val < min) val = min;
@@ -31,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Helper: show toast (kept for buy‑now button, but global.js already provides it)
+    // Helpers
     function showToast(message, isError = false) {
         let toast = document.querySelector('.toast-notify');
         if (toast) toast.remove();
@@ -42,45 +35,77 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => toast.remove(), 2000);
     }
 
-    const currencySymbol = document.documentElement.dataset.currencySymbol || 'DZD';
-    function formatCurrency(value) {
-        return `${currencySymbol} ${parseFloat(value).toFixed(2)}`;
+    function updateCartCount() {
+        fetch('/cart/count', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.json())
+            .then(data => {
+                const counters = document.querySelectorAll('.cart-count');
+                counters.forEach(el => el.textContent = data.count);
+            })
+            .catch(console.error);
     }
 
-    // Update cart count in navbar (kept for buy‑now button)
-    function updateCartCount() {
-        fetch('/cart/count', {
-            method: 'GET',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(response => response.json())
-        .then(data => {
-            const desktopCount = document.querySelector('.cart-count');
-            if (desktopCount) desktopCount.textContent = data.count;
-            const mobileCount = document.querySelector('.cart-count-mobile');
-            if (mobileCount) mobileCount.textContent = data.count;
-        })
-        .catch(error => console.error('Error updating cart count:', error));
+    // Add to Cart button – reads active swatch LIVE
+    const addCartBtn = document.querySelector('.add-cart-btn:not(.disabled)');
+    if (addCartBtn) {
+        // Remove any existing listeners (clean slate)
+        const newBtn = addCartBtn.cloneNode(true);
+        addCartBtn.parentNode.replaceChild(newBtn, addCartBtn);
+        const finalBtn = newBtn;
+
+        finalBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (this.disabled) return;
+            this.disabled = true;
+
+            const activeSwatch = document.querySelector('.color-swatch.active');
+            const selectedColorId = activeSwatch ? activeSwatch.dataset.colorId : null;
+            const productId = this.dataset.id;
+            const productName = this.dataset.name;
+            const quantity = quantityInput ? parseInt(quantityInput.value) : 1;
+
+            const swatches = document.querySelectorAll('.color-swatch');
+            if (swatches.length > 1 && !selectedColorId) {
+                showToast('Please select a colour', true);
+                this.disabled = false;
+                return;
+            }
+
+            fetch('/cart/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({
+                    product_id: productId,
+                    quantity: quantity,
+                    color_id: selectedColorId || null
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`🛍️ ${productName} added to cart`);
+                    updateCartCount();
+                    document.dispatchEvent(new CustomEvent('cartUpdated'));
+                } else {
+                    showToast(data.message || 'Failed to add item', true);
+                }
+            })
+            .catch(() => showToast('Network error, please try again', true))
+            .finally(() => setTimeout(() => finalBtn.disabled = false, 500));
+        });
     }
 
     // Buy Now button
     const buyNowBtn = document.getElementById('buyNowBtn');
     if (buyNowBtn) {
-        buyNowBtn.addEventListener('click', function(e) {
+        buyNowBtn.addEventListener('click', (e) => {
             e.preventDefault();
-
-            const productId = document.querySelector('.add-cart-btn')?.getAttribute('data-id');
-            const quantity = quantityInput ? quantityInput.value : 1;
-
-            if (!productId) {
-                showToast('Product not found', true);
-                return;
-            }
-
-            // Trigger the global add-to-cart handler by simulating a click on the add button
             const addBtn = document.querySelector('.add-cart-btn:not(.disabled)');
             if (addBtn) addBtn.click();
-
             setTimeout(() => window.location.href = '/checkout', 600);
         });
     }

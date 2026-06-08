@@ -85,4 +85,5 @@
 
 @push('scripts')
     @vite('resources/js/Shop.js')
+    @vite('resources/js/cards.js')
 @endpush

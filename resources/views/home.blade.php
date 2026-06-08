@@ -256,17 +256,19 @@
 
 @push('scripts')
     @vite('resources/js/home.js')
+    @vite('resources/js/cards.js')
+    {{-- Hero slider inline script (only slideshow, no add-to-cart) --}}
     <script>
     (function () {
-        const slider   = document.getElementById('heroSlider');
+        const slider = document.getElementById('heroSlider');
         if (!slider) return;
 
-        const slides   = slider.querySelectorAll('.hero-slide');
-        const dots     = slider.querySelectorAll('.dot');
-        const prevBtn  = document.getElementById('sliderPrev');
-        const nextBtn  = document.getElementById('sliderNext');
-        let current    = 0;
-        let timer      = null;
+        const slides = slider.querySelectorAll('.hero-slide');
+        const dots = slider.querySelectorAll('.dot');
+        const prevBtn = document.getElementById('sliderPrev');
+        const nextBtn = document.getElementById('sliderNext');
+        let current = 0;
+        let timer = null;
 
         function goTo(n) {
             slides[current].classList.remove('active');
@@ -274,7 +276,6 @@
             current = (n + slides.length) % slides.length;
             slides[current].classList.add('active');
             dots[current]?.classList.add('active');
-            // Restart Ken Burns by cloning the image node
             const img = slides[current].querySelector('.hero-slide-img');
             if (img) {
                 const clone = img.cloneNode(true);
@@ -293,14 +294,10 @@
                 startAuto();
             });
         });
-
         if (prevBtn) prevBtn.addEventListener('click', () => { goTo(current - 1); startAuto(); });
         if (nextBtn) nextBtn.addEventListener('click', () => { goTo(current + 1); startAuto(); });
-
-        // Pause on hover
         slider.addEventListener('mouseenter', () => clearInterval(timer));
         slider.addEventListener('mouseleave', startAuto);
-
         if (slides.length > 1) startAuto();
     })();
     </script>
