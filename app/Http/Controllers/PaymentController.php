@@ -246,6 +246,8 @@ class PaymentController extends Controller
             Log::error('BaridiMob order creation failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
+                'checkoutData' => $checkoutData,
+                'cart' => $cart,
             ]);
             return back()->with('error', 'Failed to create order. Please contact support.');
         }
