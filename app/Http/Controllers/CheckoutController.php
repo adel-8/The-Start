@@ -292,10 +292,10 @@ class CheckoutController extends Controller
             try {
                 $email = $order->user?->email ?? $order->guest_email;
                 if ($email) {
-                    Mail::to($email)->send(new OrderConfirmation($order));
+                    Mail::to($email)->queue(new OrderConfirmation($order));
                 }
             } catch (\Exception $mailEx) {
-                Log::error('Order confirmation email failed: ' . $mailEx->getMessage());
+                Log::error('Order confirmation email queue failed: ' . $mailEx->getMessage());
             }
 
             session(['last_order_number' => $order->order_number]);
@@ -320,8 +320,8 @@ class CheckoutController extends Controller
                 'coupon_code' => $request->coupon_code,
             ]);
 
-            // ── Return the real reason, not a generic message ──
-            $userMessage = $e->getMessage();
+            // Generic user‑friendly message – never expose the real exception
+            $userMessage = __('messages.checkout_error_generic');
 
             if ($request->expectsJson()) {
                 return response()->json([

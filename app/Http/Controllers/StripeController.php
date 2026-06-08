@@ -346,9 +346,9 @@ class StripeController extends Controller
 
             try {
                 $email = $order->user ? $order->user->email : $order->guest_email;
-                Mail::to($email)->send(new OrderConfirmation($order));
+                Mail::to($email)->queue(new OrderConfirmation($order));
             } catch (\Exception $mailEx) {
-                Log::error('Stripe order confirmation email failed: ' . $mailEx->getMessage());
+                Log::error('Stripe order confirmation email queue failed: ' . $mailEx->getMessage());
             }
 
             return $order;

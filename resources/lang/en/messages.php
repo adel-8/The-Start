@@ -399,7 +399,8 @@ return [
     'product_no_longer_available'             => ':name is no longer available.',
     'product_out_of_stock_checkout'           => ':name is out of stock. Please remove it from your cart and try again.',
     'product_insufficient_stock_checkout'     => 'Only :available unit(s) of :name are available (you requested :requested). Please update your cart.',
-    'insufficient_stock'                      => 'Only :stock unit(s) available.',
-    'insufficient_stock_total'                => 'Only :stock unit(s) available in total.',
-    'please_select_color'                     => 'Please select a color before adding to cart.',
+    'insufficient_stock'=> 'Only :stock unit(s) available.',
+    'insufficient_stock_total' => 'Only :stock unit(s) available in total.',
+    'please_select_color' => 'Please select a color before adding to cart.',
+    'checkout_error_generic' => 'Unable to place your order at this time. Please contact support.',
 ];

@@ -75,7 +75,7 @@ Route::get('/signin', [LoginController::class, 'showLoginForm'])->name('signin')
 Route::post('/signin', [LoginController::class, 'login'])->middleware('throttle:5,1');
 
 Route::get('/signup', [RegisterController::class, 'showSignupForm'])->name('signup');
-Route::post('/signup', [RegisterController::class, 'register']);
+Route::post('/signup', [RegisterController::class, 'register'])->middleware('throttle:5,1');
 
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
@@ -84,7 +84,7 @@ Route::get('/login', fn () => redirect()->route('signin'))->name('login');
 
 // Password reset
 Route::get('/forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
-Route::post('/forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+Route::post('/forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendResetLinkEmail'])->middleware('throttle:5,1')->name('password.email');
 Route::get('/reset-password/{token}', [App\Http\Controllers\Auth\ResetPasswordController::class, 'showResetForm'])->name('password.reset');
 Route::post('/reset-password', [App\Http\Controllers\Auth\ResetPasswordController::class, 'reset'])->name('password.update');
 
@@ -190,7 +190,7 @@ Route::middleware('auth')->group(function () {
 */
 
 Route::get('/contact', [ContactController::class, 'index'])->name('contact');
-Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
+Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:5,1')->name('contact.store');
 
 /*
 |--------------------------------------------------------------------------

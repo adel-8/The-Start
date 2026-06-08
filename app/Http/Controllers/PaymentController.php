@@ -227,13 +227,13 @@ class PaymentController extends Controller
                 'proof_path' => $path,
             ]);
 
-            // Send confirmation email (if email exists)
+            // Send confirmation email (if email exists) (queued)
             if ($order->guest_email || ($order->user && $order->user->email)) {
                 try {
                     $email = $order->user ? $order->user->email : $order->guest_email;
-                    Mail::to($email)->send(new OrderConfirmation($order));
+                    Mail::to($email)->queue(new OrderConfirmation($order));
                 } catch (\Exception $mailEx) {
-                    Log::error('BaridiMob order email failed: ' . $mailEx->getMessage());
+                    Log::error('BaridiMob order email queue failed: ' . $mailEx->getMessage());
                 }
             }
 
