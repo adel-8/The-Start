@@ -25,6 +25,7 @@ class Order extends Model
     'tracking_number',
     'notes',
     'payment_proof', 
+    'delivery_type',
 ];
 
     protected $casts = [

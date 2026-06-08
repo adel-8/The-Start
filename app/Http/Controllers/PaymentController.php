@@ -122,6 +122,7 @@ class PaymentController extends Controller
                     'product_id' => $product->id,
                     'quantity'   => $item['quantity'],
                     'price'      => $price,
+                    'color_id'   => $item['color_id'] ?? null,
                 ];
             }
 

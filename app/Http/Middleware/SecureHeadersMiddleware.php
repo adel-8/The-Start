@@ -25,6 +25,7 @@ class SecureHeadersMiddleware
         // Content Security Policy (adjust as needed for your assets)
         // For a basic store, this allows Stripe, Google Fonts, and your own assets
         $csp = "default-src 'self'; "
+        . "connect-src 'self' https://cdn.jsdelivr.net; "   // <-- add this line
         . "script-src 'self' 'unsafe-inline' https://js.stripe.com https://checkout.stripe.com https://cdn.jsdelivr.net; "
         . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
         . "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
