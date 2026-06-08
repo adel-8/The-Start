@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OrderController extends Controller
 {
@@ -64,6 +66,22 @@ public function updatePaymentStatus(Request $request, Order $order)
 
     return redirect()->route('admin.orders.show', $order)
         ->with('success', 'Payment status updated.');
+}
+
+
+public function downloadProof(Order $order)
+{
+    // Ensure the user is admin (already via middleware)
+    if (!in_array(auth()->user()->role_id, [1, 2])) {
+        abort(403);
+    }
+
+    $proofPath = $order->payment_proof;
+    if (!$proofPath || !Storage::disk('local')->exists($proofPath)) {
+        abort(404, 'Proof not found.');
+    }
+
+    return Storage::disk('local')->download($proofPath);
 }
 
 }

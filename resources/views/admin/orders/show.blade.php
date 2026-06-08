@@ -118,21 +118,9 @@
                 <div class="form-group">
                     <label>{{ __('admin.payment_proof') }}</label>
                     <div class="payment-proof">
-                        @php
-                            $proofPath = ltrim($order->payment_proof, '/');
-                            $proofUrl  = asset('storage/' . $proofPath);
-                            $ext       = pathinfo($proofPath, PATHINFO_EXTENSION);
-                            $isImage   = in_array(strtolower($ext), ['jpg','jpeg','png','gif','webp']);
-                        @endphp
-                        @if($isImage)
-                            <a href="{{ $proofUrl }}" target="_blank">
-                                <img src="{{ $proofUrl }}" class="proof-image" alt="{{ __('admin.payment_proof') }}">
-                            </a>
-                        @else
-                            <a href="{{ $proofUrl }}" target="_blank" class="btn-sm btn-primary">
-                                <i class="fas fa-file-pdf"></i> {{ __('admin.view_proof') }}
-                            </a>
-                        @endif
+                        <a href="{{ route('admin.orders.proof', $order) }}" target="_blank" class="btn-sm btn-primary">
+                            <i class="fas fa-eye"></i> {{ __('admin.view_proof') }}
+                        </a>
                     </div>
                 </div>
             @endif

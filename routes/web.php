@@ -138,6 +138,9 @@ Route::get('/orders/{orderNumber}', [OrderController::class, 'show'])->name('ord
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Proof download – correct path (no extra /admin)
+    Route::get('/orders/{order}/proof', [AdminOrderController::class, 'downloadProof'])->name('orders.proof');
+
     // AJAX data endpoint for charts
     Route::get('/analytics/data', [DashboardController::class, 'getAnalyticsData'])->name('analytics.data');
 
@@ -153,7 +156,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Orders
     Route::resource('orders', AdminOrderController::class)->only(['index', 'show', 'update']);
     Route::post('/orders/{order}/payment', [AdminOrderController::class, 'updatePaymentStatus'])->name('orders.payment.update');
-    
+
     // Coupons
     Route::delete('/coupons/bulk-delete', [CouponController::class, 'bulkDelete'])->name('coupons.bulk-delete');
     Route::resource('coupons', CouponController::class);

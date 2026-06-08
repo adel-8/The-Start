@@ -222,8 +222,8 @@ class PaymentController extends Controller
                 $products[$item['product_id']]->decrement('stock', $item['quantity']);
             }
 
-            $path = $request->file('proof')->store('proofs', 'public');
-            $order->update(['payment_proof' => '/storage/' . $path]);
+            $path = $request->file('proof')->store('proofs', 'local');
+            $order->update(['payment_proof' => $path]);
 
             Session::forget(['baridimob_checkout_data', 'baridimob_cart', 'baridimob_coupon_code']);
             $this->saveCart([]);
