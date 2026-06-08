@@ -278,3 +278,16 @@ Route::get('/return-policy', [PageController::class, 'returnPolicy'])->name('ret
 Route::get('/shipping-policy', [PageController::class, 'shippingPolicy'])->name('shipping.policy');
 
 Route::get('/checkout/success/{orderNumber}', [CheckoutController::class, 'success'])->name('checkout.success');
+
+use Illuminate\Support\Facades\Log;
+
+Route::post('/debug-baridimob', function () {
+    try {
+        // Simulate the upload process by calling the controller directly?
+        // Actually, let's just log a test message
+        Log::info('Test log');
+        return 'ok';
+    } catch (\Exception $e) {
+        return $e->getMessage();
+    }
+});
