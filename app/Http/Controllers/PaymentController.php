@@ -144,28 +144,36 @@ class PaymentController extends Controller
             }
             $total = max(0, $subtotal - $discount + $shippingCost);
 
-            // Handle address (deduplication) – no postal_code
+            // Handle address – FIXED for saved addresses
             $userId = Auth::id();
             $address = null;
 
-            if ($userId) {
-                $address = Address::where('user_id', $userId)
-                    ->where('address_line1', $checkoutData['address'])
-                    ->where('city', $checkoutData['city'])
-                    ->where('country', 'Algeria')
+            if (!empty($checkoutData['address_id'])) {
+                $address = Address::where('id', $checkoutData['address_id'])
+                    ->where('user_id', $userId)
                     ->first();
-            }
-
-            if (!$address) {
-                $address = Address::create([
-                    'user_id'        => $userId,
-                    'address_line1'  => $checkoutData['address'],
-                    'city'           => $checkoutData['city'],
-                    'state'          => $checkoutData['region'],
-                    'postal_code'    => null, // explicitly set null (or remove from fillable)
-                    'country'        => 'Algeria',
-                    'is_default'     => false,
-                ]);
+                if (!$address) {
+                    throw new \Exception('Selected address not found.');
+                }
+            } else {
+                if ($userId) {
+                    $address = Address::where('user_id', $userId)
+                        ->where('address_line1', $checkoutData['address'] ?? '')
+                        ->where('city', $checkoutData['city'] ?? '')
+                        ->where('country', 'Algeria')
+                        ->first();
+                }
+                if (!$address) {
+                    $address = Address::create([
+                        'user_id'        => $userId,
+                        'address_line1'  => $checkoutData['address'] ?? '',
+                        'city'           => $checkoutData['city'] ?? '',
+                        'state'          => $checkoutData['region'] ?? null,
+                        'postal_code'    => null,
+                        'country'        => 'Algeria',
+                        'is_default'     => false,
+                    ]);
+                }
             }
 
             $orderNumber = 'ORD-' . strtoupper(Str::random(10));
@@ -187,6 +195,7 @@ class PaymentController extends Controller
                 'delivery_type'       => $checkoutData['delivery_type'] ?? 'home',
                 'notes'               => $checkoutData['notes'] ?? null,
             ]);
+
             if ($couponId) {
                 $this->couponService->recordUsage(
                     $couponId,
@@ -196,7 +205,6 @@ class PaymentController extends Controller
                 );
             }
 
-            // Store in session for guest access (critical!)
             session(['last_order_number' => $order->order_number]);
 
             foreach ($items as $item) {
@@ -211,14 +219,10 @@ class PaymentController extends Controller
                 $products[$item['product_id']]->decrement('stock', $item['quantity']);
             }
 
-            // Save the proof on the non-public local disk so proofs are not directly web-accessible.
             $path = $request->file('proof')->store('proofs', 'local');
             $order->update(['payment_proof' => $path]);
 
-            // Clear all BaridiMob session data
             Session::forget(['baridimob_checkout_data', 'baridimob_cart', 'baridimob_coupon_code']);
-
-            // Clear the actual cart using the trait
             $this->saveCart([]);
 
             DB::commit();
@@ -228,7 +232,6 @@ class PaymentController extends Controller
                 'proof_path' => $path,
             ]);
 
-            // Send confirmation email (if email exists) (queued)
             if ($order->guest_email || ($order->user && $order->user->email)) {
                 try {
                     $email = $order->user ? $order->user->email : $order->guest_email;
@@ -242,9 +245,14 @@ class PaymentController extends Controller
                 ->with('success', 'Payment proof uploaded! Your order has been placed.');
 
         } catch (\Exception $e) {
-                DB::rollBack();
-                // TEMPORARY: Dump and die to see the real error
-                dd($e->getMessage(), $e->getTraceAsString());
-            }
+            DB::rollBack();
+            Log::error('BaridiMob order creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'checkoutData' => $checkoutData,
+                'cart' => $cart,
+            ]);
+            return back()->with('error', 'Failed to create order. Please contact support.');
+        }
     }
 }
