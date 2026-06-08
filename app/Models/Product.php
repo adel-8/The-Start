@@ -30,6 +30,7 @@ class Product extends Model
         'price'      => 'decimal:2',
         'buy_price'  => 'decimal:2',
     ];
+    protected $hidden = ['buy_price'];
 
     // ── Relationships ─────────────────────────────────────
 

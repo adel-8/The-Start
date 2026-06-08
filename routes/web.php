@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request; // <-- ADD THIS
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,7 +38,6 @@ use App\Http\Controllers\StripeController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PageController;
 
-
 /*
 |--------------------------------------------------------------------------
 | Public Pages
@@ -47,8 +48,6 @@ Route::get('/', [HomeController::class, 'home'])->name('home');
 Route::get('/Shop', [ShopController::class, 'Shop'])->name('Shop');
 Route::get('/product/{slug}', [ProductController::class, 'show'])->name('product.show');
 Route::get('/about', [AboutController::class, 'about'])->name('about');
-// Legal pages (using settings from database)
-
 
 /*
 |--------------------------------------------------------------------------
@@ -87,6 +86,26 @@ Route::get('/forgot-password', [App\Http\Controllers\Auth\ForgotPasswordControll
 Route::post('/forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendResetLinkEmail'])->middleware('throttle:5,1')->name('password.email');
 Route::get('/reset-password/{token}', [App\Http\Controllers\Auth\ResetPasswordController::class, 'showResetForm'])->name('password.reset');
 Route::post('/reset-password', [App\Http\Controllers\Auth\ResetPasswordController::class, 'reset'])->name('password.update');
+
+/*
+|--------------------------------------------------------------------------
+| Email Verification (added)
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/email/verify', function () {
+    return view('auth.verify-email');
+})->middleware('auth')->name('verification.notice');
+
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill();
+    return redirect()->route('home');
+})->middleware(['auth', 'signed'])->name('verification.verify');
+
+Route::post('/email/verification-notification', function (Request $request) {
+    $request->user()->sendEmailVerificationNotification();
+    return back()->with('message', 'Verification link sent!');
+})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
 /*
 |--------------------------------------------------------------------------
@@ -151,7 +170,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::resource('reviews', App\Http\Controllers\Admin\ReviewController::class)->only(['index', 'destroy']);
     Route::post('/reviews/{review}/approve', [App\Http\Controllers\Admin\ReviewController::class, 'approve'])->name('reviews.approve');
 
-    // Settings (visible to admins, but update restricted to owner)
+    // Settings
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
 
@@ -172,15 +191,17 @@ Route::get('/banner/click/{id}', [App\Http\Controllers\Admin\BannerController::c
 
 /*
 |--------------------------------------------------------------------------
-| User Profile & Orders
+| User Profile & Orders (email verification enforced)
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::get('/account/orders', [UserOrderController::class, 'index'])->name('orders.index');
+    Route::resource('addresses', AddressController::class)->except(['show']);
+    Route::patch('addresses/{address}/set-default', [AddressController::class, 'setDefault'])->name('addresses.set-default');
 });
 
 /*
@@ -200,17 +221,6 @@ Route::post('/contact', [ContactController::class, 'store'])->middleware('thrott
 
 Route::get('/auth/google', [GoogleController::class, 'redirectToGoogle'])->name('auth.google');
 Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
-
-/*
-|--------------------------------------------------------------------------
-| Addresses (auth)
-|--------------------------------------------------------------------------
-*/
-
-Route::middleware('auth')->group(function () {
-    Route::resource('addresses', AddressController::class)->except(['show']);
-    Route::patch('addresses/{address}/set-default', [AddressController::class, 'setDefault'])->name('addresses.set-default');
-});
 
 /*
 |--------------------------------------------------------------------------
@@ -256,18 +266,15 @@ Route::get('/locale/{locale}', function ($locale) {
     return redirect()->back();
 })->name('locale');
 
+/*
+|--------------------------------------------------------------------------
+| Legal pages
+|--------------------------------------------------------------------------
+*/
 
-// Legal pages (using settings from database)
-Route::get('/terms', [App\Http\Controllers\PageController::class, 'terms'])->name('terms');
-Route::get('/privacy', [App\Http\Controllers\PageController::class, 'privacy'])->name('privacy');
-Route::get('/return-policy', [App\Http\Controllers\PageController::class, 'returnPolicy'])->name('return.policy');
-Route::get('/shipping-policy', [App\Http\Controllers\PageController::class, 'shippingPolicy'])->name('shipping.policy');
+Route::get('/terms', [PageController::class, 'terms'])->name('terms');
+Route::get('/privacy', [PageController::class, 'privacy'])->name('privacy');
+Route::get('/return-policy', [PageController::class, 'returnPolicy'])->name('return.policy');
+Route::get('/shipping-policy', [PageController::class, 'shippingPolicy'])->name('shipping.policy');
 
-
-
-
-
-// FIX: Add this new success route
 Route::get('/checkout/success/{orderNumber}', [CheckoutController::class, 'success'])->name('checkout.success');
-
-
