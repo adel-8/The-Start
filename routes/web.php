@@ -37,6 +37,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PageController;
+use Illuminate\Support\Facades\Log;
 
 /*
 |--------------------------------------------------------------------------
@@ -93,18 +94,26 @@ Route::post('/reset-password', [App\Http\Controllers\Auth\ResetPasswordControlle
 |--------------------------------------------------------------------------
 */
 
+// Email verification notice
 Route::get('/email/verify', function () {
     return view('auth.verify-email');
 })->middleware('auth')->name('verification.notice');
 
+// Verify email (link from email)
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
     $request->fulfill();
-    return redirect()->route('home');
+    return redirect()->route('home')->with('message', __('Your email has been verified.'));
 })->middleware(['auth', 'signed'])->name('verification.verify');
 
+// Resend verification email
 Route::post('/email/verification-notification', function (Request $request) {
-    $request->user()->sendEmailVerificationNotification();
-    return back()->with('message', 'Verification link sent!');
+    try {
+        $request->user()->sendEmailVerificationNotification();
+        return back()->with('message', __('A new verification link has been sent to your email address.'));
+    } catch (\Exception $e) {
+        Log::error('Resend verification: Failed for user ' . $request->user()->id . ': ' . $e->getMessage());
+        return back()->withErrors(['email' => __('Unable to send verification email. Please try again later or contact support.')]);
+    }
 })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
 /*
