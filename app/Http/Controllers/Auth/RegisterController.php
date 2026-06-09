@@ -35,7 +35,7 @@ class RegisterController extends Controller
             'role_id'  => 3, // default customer role
         ]);
 
-        $user->sendEmailVerificationNotification();
+        //$user->sendEmailVerificationNotification();
         // Log the user in
         Auth::login($user);
 
