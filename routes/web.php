@@ -107,11 +107,13 @@ Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $requ
 
 // Resend verification email
 Route::post('/email/verification-notification', function (Request $request) {
+    Log::info('Resend verification started for user: ' . $request->user()->id);
     try {
         $request->user()->sendEmailVerificationNotification();
+        Log::info('Resend verification: Email sent successfully');
         return back()->with('message', __('A new verification link has been sent to your email address.'));
     } catch (\Exception $e) {
-        Log::error('Resend verification: Failed for user ' . $request->user()->id . ': ' . $e->getMessage());
+        Log::error('Resend verification failed: ' . $e->getMessage());
         return back()->withErrors(['email' => __('Unable to send verification email. Please try again later or contact support.')]);
     }
 })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
@@ -292,6 +294,3 @@ Route::get('/shipping-policy', [PageController::class, 'shippingPolicy'])->name(
 Route::get('/checkout/success/{orderNumber}', [CheckoutController::class, 'success'])->name('checkout.success');
 
 
-Route::get('/my-ip', function () {
-    return gethostbyname(gethostname());
-});

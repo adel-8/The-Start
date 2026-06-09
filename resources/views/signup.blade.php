@@ -21,17 +21,35 @@
             height: 100%;
             object-fit: contain;
         }
-        .guest-link {
-            margin-top: 1rem;
-            text-align: center;
-            display: block;
-            color: var(--color-text-secondary);
-            text-decoration: none;
+        /* Guest button styled exactly like .social-btn */
+        .guest-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            width: 100%;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 2rem;
+            padding: 0.7rem 1rem;
+            font-weight: 500;
+            color: var(--color-text);
             font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            text-decoration: none;
+            margin-top: 1rem;
         }
-        .guest-link:hover {
-            color: var(--gold);
-            text-decoration: underline;
+        .guest-btn:hover {
+            background: #fefaf2;
+            border-color: var(--color-accent);
+            color: var(--color-primary);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+        .guest-btn i {
+            font-size: 1rem;
         }
     </style>
 @endpush
@@ -114,15 +132,10 @@
       @endif
     </div>
 
-    {{-- Continue as Guest button --}}
-    @php
-        $guestEnabled = isset($settings['enable_guest_checkout']) ? $settings['enable_guest_checkout'] : true;
-    @endphp
-    @if($guestEnabled)
-        <div class="guest-btn">
-            <a href="{{ route('Shop') }}" class="guest-link">{{ __('messages.continue_as_guest') }}</a>
-        </div>
-    @endif
+    {{-- Continue as Guest button – styled exactly like social button --}}
+    <a href="{{ route('Shop') }}" class="guest-btn">
+        <i class="fas fa-user"></i> {{ __('messages.continue_as_guest') }}
+    </a>
 
     <div class="signin-prompt">
       {!! __('messages.already_have_account', [
