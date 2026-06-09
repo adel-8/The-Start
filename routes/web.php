@@ -291,3 +291,7 @@ Route::get('/shipping-policy', [PageController::class, 'shippingPolicy'])->name(
 
 Route::get('/checkout/success/{orderNumber}', [CheckoutController::class, 'success'])->name('checkout.success');
 
+
+Route::get('/my-ip', function () {
+    return gethostbyname(gethostname());
+});

@@ -16,25 +16,22 @@
             border-radius: 50%;
             background: #f5f5f5;
         }
-        .guest-btn {
-            margin-top: 1rem;
-            text-align: center;
+        .brand-logo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
         .guest-link {
-            display: inline-block;
-            background: transparent;
-            border: 1px solid var(--gold, #C9A96E);
-            color: var(--gold, #C9A96E);
-            padding: 0.6rem 1.5rem;
-            border-radius: 2rem;
+            margin-top: 1rem;
+            text-align: center;
+            display: block;
+            color: var(--color-text-secondary);
             text-decoration: none;
-            font-weight: 500;
-            transition: all 0.2s ease;
+            font-size: 0.9rem;
         }
         .guest-link:hover {
-            background: var(--gold, #C9A96E);
-            color: #fff;
-            text-decoration: none;
+            color: var(--gold);
+            text-decoration: underline;
         }
     </style>
 @endpush

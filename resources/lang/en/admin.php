@@ -546,5 +546,6 @@ return [
     'add_more_images' => 'Add More Images',
     'existing_images_hint' => 'existing_images_hint',
     'product_colors' => 'Product Colors',
-    'colors_hint' => ' colors_hint'
+    'colors_hint' => ' colors_hint',
+    'parent' => 'Parent',
 ];

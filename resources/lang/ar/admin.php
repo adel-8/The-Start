@@ -544,5 +544,6 @@ return [
     'add_more_images' => 'إضافة صور أكثر',
     'existing_images_hint' => 'تلميح الصور الموجودة',
     'product_colors' => 'ألوان المنتج',
-    'colors_hint' => 'تلميح الألوان'
+    'colors_hint' => 'تلميح الألوان',
+    'parent'=>'القسم الأب',
 ];
